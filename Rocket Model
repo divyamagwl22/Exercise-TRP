@@ -1,0 +1,99 @@
+import numpy as np
+import matplotlib.pyplot as plt
+
+# Constants
+a = 5.132 #mm/s/MPa
+n = 0.222 # -
+R_int = 12.5 # mm
+R_max = 38.4 # mm
+Len_grain = 107 # mm
+Prop_den = 1.841E-9 # kg/mm^3
+At = np.pi * (8.37/2)**2 # mm^2
+R = 206.3E+6 # mm^2 s^2 K^-1
+Tc = 1566.62 # k
+c = 1000E+3 #911E+3 #mm/s
+
+# Initial values
+Pc = 2 #101325E-6
+dt = 0.0001
+w = 0
+Vc = np.pi * (R_int**2) * Len_grain
+t = 0
+
+# Data Arrays
+Time = []
+Reg = []
+w_value = []
+ChamPres = []
+Momentum = []
+
+# Functions
+def dw_dt(Pc):
+    dw = r(Pc)
+
+    return dw
+
+def r(Pc):
+    r_val = a * (Pc ** n)
+
+    return r_val
+
+def Ab(w):
+
+    if (w + R_int) < R_max:
+        A = (2 * np.pi * (R_int + w) * Len_grain)
+    else:
+        A = 0
+
+    return A
+
+def dv_dt(Pc,w):
+    dv = r(Pc) * Ab(w)
+
+    return dv
+
+def dPc_dt(Vc,Pc,w):
+    dPc = ((R * Tc)/Vc) * (Prop_den * r(Pc) * Ab(w) - (Pc * At)/c) - (Pc/Vc)*dv_dt(Pc,w)
+
+    return dPc
+
+while t < 6:
+    # do calculations
+    t = t + dt
+
+    w = w + dw_dt(Pc)*dt
+
+    Vc = Vc + dv_dt(Pc,w)*dt
+
+    Pc = Pc + dPc_dt(Vc,Pc,w)*dt
+
+    # grab data
+    Time.append(t)
+    Reg.append(r(Pc))
+    w_value.append(w)
+    ChamPres.append(Pc)
+
+    # calculate and store momentum
+    Momentum.append(Prop_den * Reg[-1] * Ab(w) * w * Len_grain)
+
+# plot data
+fig, ax = plt.subplots(2, 2, figsize=(12, 8))
+
+ax[0][0].plot(Time, ChamPres, 'r')
+ax[0][0].set_xlabel('Time (s)')
+ax[0][0].set_ylabel('Chamber Pressure (MPa)')
+
+ax[0][1].plot(Time, Reg, 'b')
+ax[0][1].set_xlabel('Time (s)')
+ax[0][1].set_ylabel('Regression Rate (mm/s)')
+
+ax[1][0].plot(Time, w_value, 'g')
+ax[1][0].set_xlabel('Time (s)')
+ax[1][0].set_ylabel('Web Thickness (mm)')
+
+ax[1][1].plot(Time, Momentum, 'm')
+ax[1][1].set_xlabel('Time (s)')
+ax[1][1].set_ylabel('Momentum (kg mm/s)')
+
+plt.tight_layout()
+plt.show()
