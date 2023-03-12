@@ -22,7 +22,7 @@ Gam = np.sqrt(gam) * (2/(gam + 1)) ** ((gam + 1)/(2 * (gam - 1)))
 Ae_At_giv = Ae/At
 
 # initail values
-Pc = 101325 # Pa
+Pc = 2E+6 #101325 # Pa
 Pa = 101325 # Pa
 dt = 0.001
 w = 0
@@ -84,9 +84,8 @@ def dPc_dt(Vc,Pc,w):
 
     return dPc
 
-while t < 6:
+for t in np.arange(0,6,dt):
     # do calculations
-    t = t + dt
 
     w = w + dw_dt(Pc)*dt
 
@@ -108,19 +107,19 @@ fig, ax = plt.subplots(2, 2, figsize=(12, 8))
 
 ax[0][0].plot(Time, ChamPres, 'r')
 ax[0][0].set_xlabel('Time (s)')
-ax[0][0].set_ylabel('Chamber Pressure (MPa)')
+ax[0][0].set_ylabel('Chamber Pressure (Pa)')
 
 ax[0][1].plot(Time, Reg, 'b')
 ax[0][1].set_xlabel('Time (s)')
-ax[0][1].set_ylabel('Regression Rate (mm/s)')
+ax[0][1].set_ylabel('Regression Rate (m/s)')
 
 ax[1][0].plot(Time, w_value, 'g')
 ax[1][0].set_xlabel('Time (s)')
-ax[1][0].set_ylabel('Web Thickness (mm)')
+ax[1][0].set_ylabel('Web Thickness (m)')
 
 ax[1][1].plot(Time, Momentum, 'm')
 ax[1][1].set_xlabel('Time (s)')
-ax[1][1].set_ylabel('Momentum (kg mm/s)')
+ax[1][1].set_ylabel('Momentum (kg m/s)')
 
 plt.tight_layout()
 plt.show()
