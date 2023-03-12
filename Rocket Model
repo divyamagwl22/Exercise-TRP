@@ -3,19 +3,28 @@ import matplotlib.pyplot as plt
 
 # Constants
 a = 5.132 #mm/s/MPa
-n = 0.222 # -
-R_int = 12.5 # mm
-R_max = 38.4 # mm
-Len_grain = 107 # mm
-Prop_den = 1.841E-9 # kg/mm^3
-At = np.pi * (8.37/2)**2 # mm^2
-R = 206.3E+6 # mm^2 s^2 K^-1
-Tc = 1566.62 # k
-c = 1000E+3 #911E+3 #mm/s
+n = 0.222 # - 
+R_int = 12.5E-3 # m
+R_max = 38.4E-3 # m
+Len_grain = 0.107 # m
+Prop_den = 1841 # kg/m^3
+Dt = 7.8E-3 # m
+De = 16.74E-3 # m
+At = np.pi * (Dt/2)**2 # m^2
+Ae = np.pi * (De/2)**2 # M^2
+R = 206.3 # 206.3E+6 # m^2 s^-2 K^-1 
+Tc = 1558.722 # k
+c = 908 # 908E+3 #911E+3 # m/s
+alp = 0.1 * 2*np.pi/360 # rads
+index = 0
+gam = 1.1209
+Gam = np.sqrt(gam) * (2/(gam + 1)) ** ((gam + 1)/(2 * (gam - 1)))
+Ae_At_giv = Ae/At
 
-# Initial values
-Pc = 2 #101325E-6
-dt = 0.0001
+# initail values
+Pc = 101325 # Pa
+Pa = 101325 # Pa
+dt = 0.001
 w = 0
 Vc = np.pi * (R_int**2) * Len_grain
 t = 0
@@ -33,18 +42,36 @@ def dw_dt(Pc):
 
     return dw
 
-def r(Pc):
-    r_val = a * (Pc ** n)
+def r(Pc): # converts to mm and Mpa then converts back to give r in m/s
+    r_val = a * ((Pc * 1E-6) ** n)
 
-    return r_val
+    return r_val * 1E-3
 
 def Ab(w):
-
+    global state
+    """
     if (w + R_int) < R_max:
         A = (2 * np.pi * (R_int + w) * Len_grain)
     else:
         A = 0
+    """
+    if w < Len_grain*np.tan(alp):
+        A = (np.pi * (2*R_int + w) * w)/np.sin(alp)
+        state = 1
 
+    elif Len_grain*np.tan(alp) < w < R_max - R_int:
+        A = (R_int + w) * (2*np.pi*Len_grain)/np.cos(alp) - np.pi * Len_grain**2 * (np.tan(alp)/np.cos(alp))
+        state = 2
+
+    elif R_max - R_int < w < R_max - R_int + Len_grain*np.tan(alp):
+        x = R_int + w - Len_grain*np.tan(alp)
+        A = (np.pi*(R_max + x)*(R_max - x))/np.sin(alp)
+        state = 3
+
+    else:
+        A = 0
+        state = 4
+    
     return A
 
 def dv_dt(Pc,w):
