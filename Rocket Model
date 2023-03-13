@@ -4,30 +4,30 @@ import matplotlib.pyplot as plt
 # Constants
 a = 5.132 #mm/s/MPa
 n = 0.222 # - 
-R_int = 12.5E-3 # m
-R_max = 38.4E-3 # m
-Len_grain = 0.107 # m
-Prop_den = 1841 # kg/m^3
-Dt = 7.8E-3 # m
-De = 16.74E-3 # m
-At = np.pi * (Dt/2)**2 # m^2
-Ae = np.pi * (De/2)**2 # M^2
-R = 206.3 # 206.3E+6 # m^2 s^-2 K^-1 
-Tc = 1558.722 # k
-c = 908 # 908E+3 #911E+3 # m/s
-alp = 0.1 * 2*np.pi/360 # rads
-index = 0
-gam = 1.1209
-Gam = np.sqrt(gam) * (2/(gam + 1)) ** ((gam + 1)/(2 * (gam - 1)))
+R_int = 12.5E-3 # m Initail radius
+R_max = 38.4E-3 # m max radius 
+Len_grain = 0.107 # m length of grain
+Prop_den = 1841 # kg/m^3 propellent density
+Dt = 7.8E-3 # m throut diamiter 
+De = 16.74E-3 # m nozzle exit diamiter 
+At = np.pi * (Dt/2)**2 # m^2 throut area
+Ae = np.pi * (De/2)**2 # M^2 nozzle exit
+R = 206.3 # 206.3E+6 # m^2 s^-2 K^-1 spicific gas constant 
+Tc = 1558.722 # k Champer temperature 
+c = 908 # 908E+3 #911E+3 # m/s characteristic velocity 
+alp = 0.1 * 2*np.pi/360 # rads burn angle 
+index = 0 # not used 
+gam = 1.1209 # ratio of specific heats
+Gam = np.sqrt(gam) * (2/(gam + 1)) ** ((gam + 1)/(2 * (gam - 1))) # Vandenkerckhove constant
 Ae_At_giv = Ae/At
 
 # initail values
-Pc = 2E+6 #101325 # Pa
-Pa = 101325 # Pa
-dt = 0.001
-w = 0
-Vc = np.pi * (R_int**2) * Len_grain
-t = 0
+Pc = 2E+6 #101325 # Pa chamber pressure 
+Pa = 101325 # Pa atmospheric pressure 
+dt = 0.001 # s time interval 
+w = 0 # web thickness
+Vc = np.pi * (R_int**2) * Len_grain # combustion volume 
+t = 0 # time not used 
 
 # Data Arrays
 Time = []
@@ -47,7 +47,7 @@ def r(Pc): # converts to mm and Mpa then converts back to give r in m/s
 
     return r_val * 1E-3
 
-def Ab(w):
+def Ab(w): # calculates the burn area
     global state
     """
     if (w + R_int) < R_max:
