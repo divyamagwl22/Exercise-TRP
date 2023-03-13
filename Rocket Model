@@ -20,14 +20,25 @@ index = 0 # not used
 gam = 1.1209 # ratio of specific heats
 Gam = np.sqrt(gam) * (2/(gam + 1)) ** ((gam + 1)/(2 * (gam - 1))) # Vandenkerckhove constant
 Ae_At_giv = Ae/At
+sigma = 5.67 * 10**(-8)                     # stefan boltzman constant
+M_w = 40.41                                 #[g/mol], molar weight of propellant.
+# R = 8314/M_w                              #
+# gamma_flame = 1.1347                      # gamma of the hot flame
+c_p_flame = 2.4321                          #[kJ/kg/K] specific heat of flame at constant pressure
+Pr_flame = 4*gam / (9*gam - 5)              # approximation for the Prandtl number
+k_flame = 0.4015                            # thermal conductivity of hot flame in engine
+mu_flame = k_flame * Pr_flame / c_p_flame   # dynamic viscosity of flame
+v_c = 122                                   #[m/s], flow velocity, assume a number/guess from literature.
 
-# initail values
+
+# initial values
 Pc = 2E+6 #101325 # Pa chamber pressure 
 Pa = 101325 # Pa atmospheric pressure 
 dt = 0.001 # s time interval 
 w = 0 # web thickness
 Vc = np.pi * (R_int**2) * Len_grain # combustion volume 
 t = 0 # time not used 
+T_grain_init = 300       #[K]
 
 # Data Arrays
 Time = []
@@ -84,6 +95,21 @@ def dPc_dt(Vc,Pc,w):
 
     return dPc
 
+
+def convective_heat_flux(p_c, T_c, D_c, k, Pr, mu, T_2): #based on equation 3.5 on page 172 of the TRP reader
+    # Convective heat flux coefficient
+    h_a = 0.023 * p_c**0.8 * (v_c / (R * T_c))**0.8 * (1 / D_c)**0.2 * (k * Pr**0.33 / mu**0.8)
+    q_conv = h_a * (T_c - T_2)
+
+    return q_conv
+
+def radiative_heat_flux(e2, a2, T_1, T_2):  #based on equation 3.25 on page 176 of the TRP reader
+    q_rad = a2 * sigma * T_1**4 - e2 * sigma * T_2**4
+
+    return q_rad
+
+
+# Begin of simulation
 for t in np.arange(0,6,dt):
     # do calculations
 
