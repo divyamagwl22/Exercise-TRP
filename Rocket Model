@@ -144,21 +144,6 @@ def T_o_solver(T_o, Q_dot, k_eff, t_grain): #Solver for determination of T_o, al
     return Q_dot/A_chamber - (2*np.pi*k_eff*Len_grain*(Tc-T_o))/(A_chamber*np.log(r_o/r_i)) - e_grain*sigma*T_o**4 + sigma*T_amb**4
 
 def T_outside(T_c, t_current, updated_r,w): #remove redundant function variables
-<<<<<<< Updated upstream
-    t_grain = t_current - updated_r*dt
-    Q_dot = H_grain*updated_r*(Prop_den*w*math.pi*(R_max-t_grain)**2)
-    # Q_dot = q_conv+q_rad * A
-    
-    if t_grain > 0:                             # make sure that this calculation is only being done when the grain is present
-        k_eff = (k_wall * k_grain) / (k_wall * t_wall + k_grain * t_grain)      # total heat conduction coefficient
-    else:
-        k_eff = k_wall                          # if there is no grain, the only heat transfer is through the wall
-    # For this to work the convective and radiative heat flux should be changed too, so we cannot do this right now.
-    # Also, will t_grain ever be zero?
-    
-    T_out = fsolve(T_o_solver, T_amb) # solving the temperature function
-    #T_out = T_c - (1-efficiency)*(Q_dot / (2 * math.pi * k_eff * Len_grain)) * math.log((R_max + t_wall) / t_grain)
-=======
     for i in range(0, len(updated_r)):
         t_grain = t_current - updated_r[i]*dt
         Q_dot = H_grain*updated_r*(Prop_den*w*math.pi*(R_max-t_grain)**2)
@@ -172,7 +157,6 @@ def T_outside(T_c, t_current, updated_r,w): #remove redundant function variables
         # Also, will t_grain ever be zero?
         
         T_out = T_c - (1-efficiency)*(Q_dot / (2 * math.pi * k_eff * Len_grain)) * math.log((R_max + t_wall) / t_grain)
->>>>>>> Stashed changes
     return T_out, t_grain
 
 
