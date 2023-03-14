@@ -156,7 +156,8 @@ def T_outside(T_c, t_current, updated_r,w): #remove redundant function variables
         # For this to work the convective and radiative heat flux should be changed too, so we cannot do this right now.
         # Also, will t_grain ever be zero?
         
-        T_out = T_c - (1-efficiency)*(Q_dot / (2 * math.pi * k_eff * Len_grain)) * math.log((R_max + t_wall) / t_grain)
+        T_out = fsolve(T_o_solver, T_amb) # solving the temperature function
+        #T_out = T_c - (1-efficiency)*(Q_dot / (2 * math.pi * k_eff * Len_grain)) * math.log((R_max + t_wall) / t_grain) # old function w/o radiation to environment
     return T_out, t_grain
 
 
