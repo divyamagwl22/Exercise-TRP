@@ -5,15 +5,15 @@ import math
 # Constants
 a = 5.132 #mm/s/MPa
 n = 0.222 # - 
-R_int = 12.5E-3 # m Initail radius
+R_int = 12.5E-3 # m Initial radius
 R_max = 38.4E-3 # m max radius 
 Len_grain = 0.107 # m length of grain
-Prop_den = 1841 # kg/m^3 propellent density
-Dt = 7.8E-3 # m throut diamiter 
-De = 16.74E-3 # m nozzle exit diamiter 
-At = np.pi * (Dt/2)**2 # m^2 throut area
+Prop_den = 1841 # kg/m^3 propellant density
+Dt = 7.8E-3 # m throut diameter 
+De = 16.74E-3 # m nozzle exit diameter 
+At = np.pi * (Dt/2)**2 # m^2 throat area
 Ae = np.pi * (De/2)**2 # M^2 nozzle exit
-R = 206.3 # 206.3E+6 # m^2 s^-2 K^-1 spicific gas constant 
+R = 206.3 # 206.3E+6 # m^2 s^-2 K^-1 specific gas constant 
 Tc = 1558.722 # k Champer temperature 
 c = 908 # 908E+3 #911E+3 # m/s characteristic velocity 
 alp = 0.1 * 2*np.pi/360 # rads burn angle 
