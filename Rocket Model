@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import math
+from scipy.optimize import fsolve
 
 # Constants
 a = 5.132                                   #mm/s/MPa
@@ -36,7 +37,7 @@ e_grain = 0.2                               # emissivity of the grain, needs a v
 a_grain = 0.8                               # absorptivity of the grain, needs a value!
 H_grain = 4.7E6                                   # J/kg heat from grain
 M_propellant = 0.758                        # mass of propellant [kg]
-T_amb = 283                                 # K ambient temperature
+T_amb = 298                                 # K ambient temperature
 
 
 # initial values
@@ -138,15 +139,22 @@ def updated_regression_rate(Pc, Tc, Gam, At, Prop_den, R, w):
     
     return updated_r
 
-def T_o_solver(T_o, Q_dot, k_eff, t_grain): #Solver for determination of T_o, also taking into account that the chamber cools down due to radiation
-    r_i = R_max-t_grain
-    r_o = R_max+t_wall
-    return Q_dot/A_chamber - (2*np.pi*k_eff*Len_grain*(Tc-T_o))/(A_chamber*np.log(r_o/r_i)) - e_grain*sigma*T_o**4 + sigma*T_amb**4
+# def T_o_solver(T_o, Q_dot, k_eff, t_grain): #Solver for determination of T_o, also taking into account that the chamber cools down due to radiation
+#     r_i = R_max-t_grain
+#     r_o = R_max+t_wall
+#     return Q_dot/A_chamber - (2*np.pi*k_eff*Len_grain*(Tc-T_o))/(A_chamber*np.log(r_o/r_i)) - e_grain*sigma*T_o**4 + sigma*T_amb**4
 
-def T_outside(T_c, t_current, updated_r,w): #remove redundant function variables
+def T_o_solver(x): #Solver for determination of T_o, also taking into account that the chamber cools down due to radiation
+    r_i = R_max-x[3]
+    r_o = R_max+t_wall
+    return np.array([x[1]/A_chamber - (2*np.pi*x[2]*Len_grain*(Tc-x[0]))/(A_chamber*np.log(r_o/r_i)) - e_grain*sigma*x[0]**4 + sigma*T_amb**4,0,0,0])
+
+def T_outside(t_current, updated_r,w):
+    T_out = np.array([T_amb, 0, 0,0])
+    T_casing = []
     for i in range(0, len(updated_r)):
         t_grain = t_current - updated_r[i]*dt
-        Q_dot = H_grain*updated_r*(Prop_den*w*math.pi*(R_max-t_grain)**2)
+        Q_dot = H_grain*updated_r[i]*(Prop_den*w*math.pi*(R_max-t_grain)**2)
         # Q_dot = q_conv+q_rad * A
         
         if t_grain > 0:                             # make sure that this calculation is only being done when the grain is present
@@ -156,13 +164,16 @@ def T_outside(T_c, t_current, updated_r,w): #remove redundant function variables
         # For this to work the convective and radiative heat flux should be changed too, so we cannot do this right now.
         # Also, will t_grain ever be zero?
         
-        T_out = fsolve(T_o_solver, T_amb) # solving the temperature function
+        T_out = fsolve(T_o_solver, np.array([T_out[0], Q_dot, k_eff, t_grain]))  # solving the temperature function
         #T_out = T_c - (1-efficiency)*(Q_dot / (2 * math.pi * k_eff * Len_grain)) * math.log((R_max + t_wall) / t_grain) # old function w/o radiation to environment
-    return T_out, t_grain
+
+        T_casing.append(T_out[0])
+    return T_casing
 
 
 # Begin of simulation
 t_grain = t_init
+# T_out = T_amb
 
 for t in np.arange(0,6,dt):
     # do calculations
@@ -196,7 +207,7 @@ R_RPA = np.concatenate((8.314 / (prop_1[:, 6] / 1000), 8.314 / (prop_2[:, 6] / 1
 
 reg_adjusted = updated_regression_rate(ChamPres[:5991], Tc_RPA, Gam_RPA, At, Prop_den, R_RPA, w_value)
 
-T_out, t_grain = T_outside(Tc, t_grain, reg_adjusted, w)
+T_outer = T_outside(t_grain, reg_adjusted, w)
 
 reg_av = np.mean(Reg[0:3751])
 reg_adj_av = np.mean(reg_adjusted[0:3751])
@@ -217,7 +228,7 @@ plt.ylabel('Regression Rate (m/s)')
 
 # plot outer temperature
 plt.figure()
-plt.plot(Time[0:5991], T_out, 'c')
+plt.plot(Time[0:5991], T_outer, 'c')
 plt.xlabel('Time (s)')
 plt.ylabel('Outer Temperature (K)')
 
