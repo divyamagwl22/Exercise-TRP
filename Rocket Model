@@ -1,44 +1,49 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import math
 
 # Constants
-a = 5.132 #mm/s/MPa
-n = 0.222 # - 
-R_int = 12.5E-3 # m Initail radius
-R_max = 38.4E-3 # m max radius 
-Len_grain = 0.107 # m length of grain
-Prop_den = 1841 # kg/m^3 propellent density
-Dt = 7.8E-3 # m throut diamiter 
-De = 16.74E-3 # m nozzle exit diamiter 
-At = np.pi * (Dt/2)**2 # m^2 throut area
-Ae = np.pi * (De/2)**2 # M^2 nozzle exit
-R = 206.3 # 206.3E+6 # m^2 s^-2 K^-1 spicific gas constant 
-Tc = 1558.722 # k Champer temperature 
-c = 908 # 908E+3 #911E+3 # m/s characteristic velocity 
-alp = 0.1 * 2*np.pi/360 # rads burn angle 
-index = 0 # not used 
-gam = 1.1209 # ratio of specific heats
+a = 5.132                                   #mm/s/MPa
+n = 0.222                                   # -
+R_int = 12.5E-3                             # m Initial radius
+R_max = 38.4E-3                             # m max radius
+Len_grain = 0.107                           # m length of grain
+Prop_den = 1841                             # kg/m^3 propellant density
+Dt = 7.8E-3                                 # m throat diameter
+De = 16.74E-3                               # m nozzle exit diameter
+At = np.pi * (Dt/2)**2                      # m^2 throat area
+Ae = np.pi * (De/2)**2                      # M^2 nozzle exit
+R = 206.3                                   # 206.3E+6 # m^2 s^-2 K^-1 specific gas constant
+Tc = 1558.722                               # k Champer temperature
+c = 908                                     # 908E+3 #911E+3 # m/s characteristic velocity
+alp = 0.1 * 2*np.pi/360                     # rads burn angle
+index = 0                                   # not used
+gam = 1.1209                                # ratio of specific heats
 Gam = np.sqrt(gam) * (2/(gam + 1)) ** ((gam + 1)/(2 * (gam - 1))) # Vandenkerckhove constant
 Ae_At_giv = Ae/At
 sigma = 5.67 * 10**(-8)                     # stefan boltzman constant
 M_w = 40.41                                 #[g/mol], molar weight of propellant.
-# R = 8314/M_w                              #
-# gamma_flame = 1.1347                      # gamma of the hot flame
 c_p_flame = 2.4321                          #[kJ/kg/K] specific heat of flame at constant pressure
 Pr_flame = 4*gam / (9*gam - 5)              # approximation for the Prandtl number
 k_flame = 0.4015                            # thermal conductivity of hot flame in engine
 mu_flame = k_flame * Pr_flame / c_p_flame   # dynamic viscosity of flame
 v_c = 122                                   #[m/s], flow velocity, assume a number/guess from literature.
+k_grain = 0.4015                            # W/mK conductivity through grain
+k_wall = 237                                # W/mK conductivity through wall (Al?)
+t_wall = 0.005                              # m wall thickness
+efficiency = 0.66                           # efficiency of heat going into propusion vs. heat produced
+e_grain = 0.2                               # emissivity of the grain, needs a value!
+a_grain = 0.8                               # absorptivity of the grain, needs a value!
 
 
 # initial values
-Pc = 2E+6 #101325 # Pa chamber pressure 
-Pa = 101325 # Pa atmospheric pressure 
-dt = 0.001 # s time interval 
-w = 0 # web thickness
-Vc = np.pi * (R_int**2) * Len_grain # combustion volume 
-t = 0 # time not used 
-T_grain_init = 300       #[K]
+Pc = 2E+6                                   #101325 # Pa chamber pressure
+Pa = 101325                                 # Pa atmospheric pressure
+dt = 0.001                                  # s time interval
+w = 0                                       # web thickness
+Vc = np.pi * (R_int**2) * Len_grain         # combustion volume
+t = 0                                       # time not used
+T_grain_init = 300                          #[K]
 
 # Data Arrays
 Time = []
@@ -46,6 +51,7 @@ Reg = []
 w_value = []
 ChamPres = []
 Momentum = []
+OuterTemp = []
 
 # Functions
 def dw_dt(Pc):
@@ -96,16 +102,21 @@ def dPc_dt(Vc,Pc,w):
     return dPc
 
 
-def convective_heat_flux(p_c, T_c, D_c, k, Pr, mu, T_2): #based on equation 3.5 on page 172 of the TRP reader
+def convective_heat_flux(p_c, T_c, A_burn, k, Pr, mu, T_2): #based on equation 3.5 on page 172 of the TRP reader
+    D_c = A_burn / (np.pi * Len_grain)          # flame diameter (2x radius of grain that is burning)
+
     # Convective heat flux coefficient
     h_a = 0.023 * p_c**0.8 * (v_c / (R * T_c))**0.8 * (1 / D_c)**0.2 * (k * Pr**0.33 / mu**0.8)
-    q_conv = h_a * (T_c - T_2)
+
+    q_conv = h_a * (T_c - T_2)                  # T_2 is the temperature of the solid, in this case the grain temp
 
     return q_conv
 
 def radiative_heat_flux(e2, a2, T_1, T_2):  #based on equation 3.25 on page 176 of the TRP reader
-    q_rad = a2 * sigma * T_1**4 - e2 * sigma * T_2**4
+    q_rad = a2 * sigma * T_1**4 - e2 * sigma * T_2**4       # T_1 is the flame temperature, T_2 that of the grain
 
+    # in the future, this equation could switch to the flame radiating onto the motor casing immediately in the final
+    # moments of the burn
     return q_rad
 
 def updated_regression_rate(Pc, Tc, Gam, At, Prop_den, R, w):
@@ -121,6 +132,18 @@ def updated_regression_rate(Pc, Tc, Gam, At, Prop_den, R, w):
            updated_r[i] = (np.asarray(Pc[i]) * At) / (Prop_den * Ab(w[i]) * c_star[i])
     
     return updated_r
+
+def T_outside(T_c, efficiency, q_conv, q_rad, k_wall, k_grain, Len_grain, t_wall, R_max, updated_r, R_grain,w,t):
+    t_grain = R_max-R_grain-updated_r*t
+    Q_dot = (q_conv+q_rad)*Ab(w)
+    
+    if t_grain>0:
+        k_eff = (k_wall * k_grain) / (k_wall * t_wall + k_grain * t_grain)
+    else:
+        k_eff = k_wall
+    
+    T_out = T_c - (1-efficiency)*(Q_dot / (2 * math.pi * k_eff * Len_grain)) * math.log((R_max + t_wall) / (t_grain))
+    return T_out
 
 
 # Begin of simulation
@@ -138,6 +161,7 @@ for t in np.arange(0,6,dt):
     Reg.append(r(Pc))
     w_value.append(w)
     ChamPres.append(Pc)
+    OuterTemp.append(T_outside)
 
     # calculate and store momentum
     Momentum.append(Prop_den * Reg[-1] * Ab(w) * w * Len_grain)
@@ -158,6 +182,12 @@ plt.figure()
 plt.plot(Time[0:5991], reg_adjusted, 'c')
 plt.xlabel('Time (s)')
 plt.ylabel('Regression Rate (m/s)')
+
+# plot outer temperature
+plt.figure()
+plt.plot(Time, OuterTemp, 'c')
+plt.xlabel('Time (s)')
+plt.ylabel('Outer Temperature (K)')
 
 
 # plot data
