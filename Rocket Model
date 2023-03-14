@@ -138,10 +138,12 @@ def T_outside(T_c, efficiency, k_wall, k_grain, Len_grain, t_wall, R_max, update
     t_grain = R_max-R_grain-updated_r*t
     Q_dot = H_grain*updated_r*(Prop_den*w*math.pi*(R_grain+t_grain)**2)
     
-    if t_grain>0:
-        k_eff = (k_wall * k_grain) / (k_wall * t_wall + k_grain * t_grain)
+    if t_grain > 0:                             # make sure that this calculation is only being done when the grain is present
+        k_eff = (k_wall * k_grain) / (k_wall * t_wall + k_grain * t_grain)      # total heat conduction coefficient
     else:
-        k_eff = k_wall
+        k_eff = k_wall                          # if there is no grain, the only heat transfer is through the wall
+    # For this to work the convective and radiative heat flux should be changed too, so we cannot do this right now.
+    # Also, will t_grain ever be zero?
     
     T_out = T_c - (1-efficiency)*(Q_dot / (2 * math.pi * k_eff * Len_grain)) * math.log((R_max + t_wall) / (t_grain))
     return T_out
