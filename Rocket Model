@@ -174,7 +174,7 @@ for t in np.arange(0,6,dt):
     Reg.append(r(Pc))
     w_value.append(w)
     ChamPres.append(Pc)
-    OuterTemp.append(T_out)
+    # OuterTemp.append(T_out)
 
     # calculate and store momentum
     Momentum.append(Prop_den * Reg[-1] * Ab(w) * w * Len_grain)
@@ -197,6 +197,8 @@ for i in range(0, len(w_value)):
     area.append(Ab(w_value[i]))
 burn_time = M_propellant / (Prop_den * reg_av * np.mean(area[0:3751]))
 burn_time_adj = M_propellant / (Prop_den * reg_adj_av * np.mean(area[0:3751]))
+print(f"Burn time without additive: {round(burn_time, 2)} s")
+print(f"Burn time with additive: {round(burn_time_adj, 2)} s")
 
 # plot regression rate
 plt.figure()
