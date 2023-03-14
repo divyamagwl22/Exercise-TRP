@@ -34,6 +34,7 @@ t_wall = 0.005                              # m wall thickness
 efficiency = 0.66                           # efficiency of heat going into propusion vs. heat produced
 e_grain = 0.2                               # emissivity of the grain, needs a value!
 a_grain = 0.8                               # absorptivity of the grain, needs a value!
+H_grain = 4.7E6                                   # J/kg heat from grain
 
 
 # initial values
@@ -133,9 +134,9 @@ def updated_regression_rate(Pc, Tc, Gam, At, Prop_den, R, w):
     
     return updated_r
 
-def T_outside(T_c, efficiency, q_conv, q_rad, k_wall, k_grain, Len_grain, t_wall, R_max, updated_r, R_grain,w,t):
+def T_outside(T_c, efficiency, k_wall, k_grain, Len_grain, t_wall, R_max, updated_r, R_grain,w,t,H_grain, Prop_den):
     t_grain = R_max-R_grain-updated_r*t
-    Q_dot = (q_conv+q_rad)*Ab(w)
+    Q_dot = H_grain*updated_r*(Prop_den*w*math.pi*(R_grain+t_grain)**2)
     
     if t_grain>0:
         k_eff = (k_wall * k_grain) / (k_wall * t_wall + k_grain * t_grain)
