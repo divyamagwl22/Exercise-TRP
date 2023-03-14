@@ -36,6 +36,7 @@ e_grain = 0.2                               # emissivity of the grain, needs a v
 a_grain = 0.8                               # absorptivity of the grain, needs a value!
 H_grain = 4.7E6                                   # J/kg heat from grain
 M_propellant = 0.758                        # mass of propellant [kg]
+T_amb = 283                                 # K ambient temperature
 
 
 # initial values
@@ -46,7 +47,8 @@ w = 0                                       # web thickness
 Vc = np.pi * (R_int**2) * Len_grain         # combustion volume
 t = 0                                       # time not used
 T_grain_init = 300                          #[K]
-t_init = R_max - R_int                             # initial grain thickness, R_max - R_inner at start of burn
+t_init = R_max - R_int                      # initial grain thickness, R_max - R_inner at start of burn
+A_chamber = 2*np.pi*(R_max+t_wall)*Len_grain #Surface area on the outside of the chamber
 
 # Data Arrays
 Time = []
@@ -136,6 +138,11 @@ def updated_regression_rate(Pc, Tc, Gam, At, Prop_den, R, w):
     
     return updated_r
 
+def T_o_solver(T_o, Q_dot, k_eff, t_grain): #Solver for determination of T_o, also taking into account that the chamber cools down due to radiation
+    r_i = R_max-t_grain
+    r_o = R_max+t_wall
+    return Q_dot/A_chamber - (2*np.pi*k_eff*Len_grain*(Tc-T_o))/(A_chamber*np.log(r_o/r_i)) - e_grain*sigma*T_o**4 + sigma*T_amb**4
+
 def T_outside(T_c, t_current, updated_r,w): #remove redundant function variables
     t_grain = t_current - updated_r*dt
     Q_dot = H_grain*updated_r*(Prop_den*w*math.pi*(R_max-t_grain)**2)
@@ -148,7 +155,8 @@ def T_outside(T_c, t_current, updated_r,w): #remove redundant function variables
     # For this to work the convective and radiative heat flux should be changed too, so we cannot do this right now.
     # Also, will t_grain ever be zero?
     
-    T_out = T_c - (1-efficiency)*(Q_dot / (2 * math.pi * k_eff * Len_grain)) * math.log((R_max + t_wall) / t_grain)
+    T_out = fsolve(T_o_solver, T_amb) # solving the temperature function
+    #T_out = T_c - (1-efficiency)*(Q_dot / (2 * math.pi * k_eff * Len_grain)) * math.log((R_max + t_wall) / t_grain)
     return T_out, t_grain
 
 
