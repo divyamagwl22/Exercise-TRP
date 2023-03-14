@@ -14,7 +14,7 @@ De = 16.74E-3                               # m nozzle exit diameter
 At = np.pi * (Dt/2)**2                      # m^2 throat area
 Ae = np.pi * (De/2)**2                      # M^2 nozzle exit
 R = 206.3                                   # 206.3E+6 # m^2 s^-2 K^-1 specific gas constant
-Tc = 1558.722                               # k Champer temperature
+Tc = 1558.722                               # k Chamber temperature
 c = 908                                     # 908E+3 #911E+3 # m/s characteristic velocity
 alp = 0.1 * 2*np.pi/360                     # rads burn angle
 index = 0                                   # not used
@@ -31,7 +31,7 @@ v_c = 122                                   #[m/s], flow velocity, assume a numb
 k_grain = 0.4015                            # W/mK conductivity through grain
 k_wall = 237                                # W/mK conductivity through wall (Al?)
 t_wall = 0.005                              # m wall thickness
-efficiency = 0.66                           # efficiency of heat going into propusion vs. heat produced
+efficiency = 0.66                           # efficiency of heat going into propulsion vs. heat produced
 e_grain = 0.2                               # emissivity of the grain, needs a value!
 a_grain = 0.8                               # absorptivity of the grain, needs a value!
 H_grain = 4.7E6                                   # J/kg heat from grain
@@ -45,6 +45,7 @@ w = 0                                       # web thickness
 Vc = np.pi * (R_int**2) * Len_grain         # combustion volume
 t = 0                                       # time not used
 T_grain_init = 300                          #[K]
+t_init = R_max - R_int                             # initial grain thickness, R_max - R_inner at start of burn
 
 # Data Arrays
 Time = []
@@ -134,9 +135,10 @@ def updated_regression_rate(Pc, Tc, Gam, At, Prop_den, R, w):
     
     return updated_r
 
-def T_outside(T_c, efficiency, k_wall, k_grain, Len_grain, t_wall, R_max, updated_r, R_grain,w,t,H_grain, Prop_den):
-    t_grain = R_max-R_grain-updated_r*t
-    Q_dot = H_grain*updated_r*(Prop_den*w*math.pi*(R_grain+t_grain)**2)
+def T_outside(T_c, t_current, updated_r,w): #remove redundant function variables
+    t_grain = t_current - updated_r*dt
+    Q_dot = H_grain*updated_r*(Prop_den*w*math.pi*(R_max-t_grain)**2)
+    # Q_dot = q_conv+q_rad * A
     
     if t_grain > 0:                             # make sure that this calculation is only being done when the grain is present
         k_eff = (k_wall * k_grain) / (k_wall * t_wall + k_grain * t_grain)      # total heat conduction coefficient
@@ -145,11 +147,13 @@ def T_outside(T_c, efficiency, k_wall, k_grain, Len_grain, t_wall, R_max, update
     # For this to work the convective and radiative heat flux should be changed too, so we cannot do this right now.
     # Also, will t_grain ever be zero?
     
-    T_out = T_c - (1-efficiency)*(Q_dot / (2 * math.pi * k_eff * Len_grain)) * math.log((R_max + t_wall) / (t_grain))
-    return T_out
+    T_out = T_c - (1-efficiency)*(Q_dot / (2 * math.pi * k_eff * Len_grain)) * math.log((R_max + t_wall) / t_grain)
+    return T_out, t_grain
 
 
 # Begin of simulation
+t_grain = t_init
+
 for t in np.arange(0,6,dt):
     # do calculations
 
@@ -159,12 +163,17 @@ for t in np.arange(0,6,dt):
 
     Pc = Pc + dPc_dt(Vc,Pc,w)*dt
 
+    updated_r = updated_regression_rate(Pc, Tc, Gam, At, Prop_den, R, w)
+
+    T_out, t_grain = T_outside(Tc, t_grain, updated_r, w)
+
+
     # grab data
     Time.append(t)
     Reg.append(r(Pc))
     w_value.append(w)
     ChamPres.append(Pc)
-    OuterTemp.append(T_outside)
+    OuterTemp.append(T_out)
 
     # calculate and store momentum
     Momentum.append(Prop_den * Reg[-1] * Ab(w) * w * Len_grain)
