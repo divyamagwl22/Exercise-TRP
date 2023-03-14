@@ -180,7 +180,7 @@ plt.ylabel('Regression Rate (m/s)')
 
 # plot outer temperature
 plt.figure()
-plt.plot(Time[0:5991], OuterTemp, 'c')
+plt.plot(Time, OuterTemp, 'c')
 plt.xlabel('Time (s)')
 plt.ylabel('Outer Temperature (K)')
 
