@@ -171,6 +171,33 @@ def T_outside(t_current, updated_r,w):
     return T_casing
 
 
+def Pe_Pc():        # Calculation of the Pe/Pc through iterative process. Run this once at startup
+    Ae_At_cal_arr = []
+    Pe_Pc_arr = []
+    for Pe_Pc_cal in np.arange(0, 0.1, 0.00001): # Guess a pressure ratio
+        Ae_At_cal = Gam / np.sqrt((2 * gam) / (gam - 1) * Pe_Pc_cal ** 2 / gam * (1 - Pe_Pc_cal ** ((gam - 1) / gam)))
+
+        Pe_Pc_arr.append(Pe_Pc_cal)
+        Ae_At_cal_arr.append(Ae_At_cal)
+
+    Pe_Pc = None
+
+    for Ae_At in Ae_At_cal_arr:     # Compare area ratio calculated with the given area ratio
+        if Ae_At_giv * 0.9999 < Ae_At < Ae_At_giv * 1.0001:
+            Ae_index = Ae_At_cal_arr.index(Ae_At)
+            Pe_Pc = Pe_Pc_arr[Ae_index]     # if the area ratio is roughly the same, store it in this variable
+
+    return Pe_Pc
+
+def Jet_Velocity(Pe_Pc):
+    V_eq = np.sqrt(2*gam/(gam-1) * R * Tc * (1 - Pe_Pc**(gam-1/gam)))
+    return V_eq
+
+def Jet_Power_dt(massflow, w):     # Jet power per timestep; Inputs: massflow, jet velocity
+    P_jet_dt = 0.5 * massflow * w**2
+    return P_jet_dt
+
+
 # Begin of simulation
 t_grain = t_init
 # T_out = T_amb
