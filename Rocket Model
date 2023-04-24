@@ -237,9 +237,9 @@ for t in np.arange(0,6,dt):
     # Momentum.append(Prop_den * Reg[-1] * Ab(w) * w * Len_grain)
 
 # Using RPA Lite, I create an array of Tc, Gam, and R based on the input chamber pressure.
-prop_1 = np.loadtxt("RPA_Lite/properties_1.txt")
-prop_2 = np.loadtxt("RPA_Lite/properties_2.txt")
-prop_3 = np.loadtxt("RPA_Lite/properties_3.txt")
+prop_1 = np.loadtxt("Public Projects\Exercise-TRP\RPA_Lite\properties_1.txt")
+prop_2 = np.loadtxt("Public Projects\Exercise-TRP\RPA_Lite\properties_2.txt")
+prop_3 = np.loadtxt("Public Projects\Exercise-TRP\RPA_Lite\properties_3.txt")
 Tc_RPA = np.concatenate((prop_1[:, 5], prop_2[:, 5], prop_3[:, 5]))
 gam_RPA = np.concatenate((prop_1[:, 7], prop_2[:, 7], prop_3[:, 7]))
 Gam_RPA = np.multiply((np.sqrt(gam_RPA)), np.power((1 + gam_RPA)/2, -(1 + gam_RPA) / (2*(gam_RPA - 1))))
@@ -275,19 +275,22 @@ plt.ylabel('Outer Temperature (K)')
 
 # plot data
 fig, ax = plt.subplots(2, 2, figsize=(12, 8))
-
+ax[0][0].set_title("Chamber Pressure Performance with No Additive")
 ax[0][0].plot(Time, ChamPres, 'r')
 ax[0][0].set_xlabel('Time (s)')
 ax[0][0].set_ylabel('Chamber Pressure (Pa)')
 
+ax[0][1].set_title("Regresion rate Performance with No Additive")
 ax[0][1].plot(Time, Reg, 'b')
 ax[0][1].set_xlabel('Time (s)')
 ax[0][1].set_ylabel('Regression Rate (m/s)')
 
+ax[1][0].set_title("web thickness Performance with No Additive")
 ax[1][0].plot(Time, w_value, 'g')
 ax[1][0].set_xlabel('Time (s)')
 ax[1][0].set_ylabel('Web Thickness (m)')
 
+ax[1][1].set_title("Momentum Performance with No Additive")
 ax[1][1].plot(Time, Momentum, 'm')
 ax[1][1].set_xlabel('Time (s)')
 ax[1][1].set_ylabel('Momentum (kg m/s)')
