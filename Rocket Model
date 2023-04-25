@@ -47,6 +47,7 @@ dt = 0.001                                  # s time interval
 w = 0                                       # web thickness
 Vc = np.pi * (R_int**2) * Len_grain         # combustion volume
 t = 0                                       # time not used
+t_max = 6                                   # max simulation run time
 T_grain_init = 300                          #[K]
 t_init = R_max - R_int                      # initial grain thickness, R_max - R_inner at start of burn
 A_chamber = 2*np.pi*(R_max+t_wall)*Len_grain #Surface area on the outside of the chamber
@@ -60,15 +61,23 @@ Momentum = []
 OuterTemp = []
 
 # Functions
-def dw_dt(Pc):
-    dw = r(Pc)
+def dw_dt(Pc,iter,t):
+    dw = r(Pc,iter,t)
 
     return dw
 
-def r(Pc): # converts to mm and Mpa then converts back to give r in m/s
-    r_val = a * ((Pc * 1E-6) ** n)
-
-    return r_val * 1E-3
+def r(Pc,iter,t): # converts to mm and Mpa then converts back to give r in m/s
+    if iter == 0:
+        r_val = (a * ((Pc * 1E-6) ** n) ) * 1E-3
+    else:
+        inter_value = np.arange(0,t_max,dt)
+        index = np.where(inter_value == t)[0][0]
+        if index < 5991:
+            r_val = reg_adjusted[index] 
+        else:
+            r_val = reg_adjusted[-1]
+    #print(r_val)
+    return r_val 
 
 def Ab(w): # calculates the burn area
     global state
@@ -97,13 +106,13 @@ def Ab(w): # calculates the burn area
     
     return A
 
-def dv_dt(Pc,w):
-    dv = r(Pc) * Ab(w)
+def dv_dt(Pc,w,iter,t):
+    dv = r(Pc,iter,t) * Ab(w)
 
     return dv
 
-def dPc_dt(Vc,Pc,w):
-    dPc = ((R * Tc)/Vc) * (Prop_den * r(Pc) * Ab(w) - (Pc * At)/c) - (Pc/Vc)*dv_dt(Pc,w)
+def dPc_dt(Vc,Pc,w,iter,t):
+    dPc = ((R * Tc)/Vc) * (Prop_den * r(Pc,iter,t) * Ab(w) - (Pc * At)/c) - (Pc/Vc)*dv_dt(Pc,w,iter,t)
 
     return dPc
 
@@ -133,9 +142,9 @@ def Thrust(gam,R,Tc,Pa,Pc): #calaculates the thrust of the rocket dependent on t
     Pe_Pc_val = Pe_Pc
     for i in np.arange(0, len(Pc)):
 
-        Ue[i] = np.sqrt((2 * gam)/(gam - 1) * R * Tc * (1 - (Pe_Pc_val) ** ((gam - 1)/gam)))
+        Ue[i] = np.sqrt((2 * gam)/(gam - 1) * R * Tc * (1 - (Pe_Pc_val) ** ((gam - 1)/gam))) # may want to relate this to the function
 
-        m[i] = (Pc[i] * At)/c
+        m[i] = (Pc[i] * At)/c # may want to relate this to the function
 
         Cf[i] = Gam * np.sqrt((2 * gam)/(gam - 1) * (1 - (Pe_Pc_val) ** ((gam - 1)/gam))) + (Pe_Pc_val - Pa/Pc[i])*Ae_At_giv
 
@@ -229,41 +238,111 @@ Pe_Pc()                 # Pe_Pc
 Jet_Velocity(Pe_Pc)     # V_eq
 
 
+def main_code_loop(iter): #iter is the iteration number used to iterate the code 
+    # set global values so they are taken from the initial values
+    global w, Pc, Vc, Time, Reg, w_value, ChamPres, Momentum
+    # resets the lists after iteration
+    
+    Time = []
+    Reg = []
+    w_value = []
+    ChamPres = []
+    Momentum = []
+    
+    # main loop
+    for t in np.arange(0,t_max,dt):
+        # do calculations
 
-for t in np.arange(0,6,dt):
-    # do calculations
+        w = w + dw_dt(Pc,iter,t)*dt
 
-    w = w + dw_dt(Pc)*dt
+        Vc = Vc + dv_dt(Pc,w,iter,t)*dt
 
-    Vc = Vc + dv_dt(Pc,w)*dt
+        Pc = Pc + dPc_dt(Vc,Pc,w,iter,t)*dt
 
-    Pc = Pc + dPc_dt(Vc,Pc,w)*dt
+        E_jet_dt = Jet_Power(Massflow(dv_dt(Pc,w,iter,t)),V_eq)*dt # Jet Energy in this particular timestep
 
-    E_jet_dt = Jet_Power(Massflow(dv_dt(Pc,w)),V_eq)*dt # Jet Energy in this particular timestep
+        # updated_r = updated_regression_rate(Pc, Tc, Gam, At, Prop_den, R, w)
 
-    # updated_r = updated_regression_rate(Pc, Tc, Gam, At, Prop_den, R, w)
+        # grab data
+        Time.append(t)
+        Reg.append(r(Pc,iter,t))
+        w_value.append(w)
+        ChamPres.append(Pc)
+        # OuterTemp.append(T_out)
 
-    # grab data
-    Time.append(t)
-    Reg.append(r(Pc))
-    w_value.append(w)
-    ChamPres.append(Pc)
-    # OuterTemp.append(T_out)
-
-    # calculate and store momentum
-    Momentum.append(Massflow(dv_dt(Pc,w)) * V_eq * dt)      # momentum according to F = m w and Momentum = F tb, where tb is now dt
-    # Momentum.append(Prop_den * Reg[-1] * Ab(w) * w * Len_grain)
+        # calculate and store momentum
+        Momentum.append(Massflow(dv_dt(Pc,w,iter,t)) * V_eq * dt)      # momentum according to F = m w and Momentum = F tb, where tb is now dt
+        # Momentum.append(Prop_den * Reg[-1] * Ab(w) * w * Len_grain)
+    #resets values to initial conditions
+    w,Vc,Pc = 0, np.pi * (R_int**2) * Len_grain, 2E+6 
 
 # Using RPA Lite, I create an array of Tc, Gam, and R based on the input chamber pressure.
-prop_1 = np.loadtxt("Public Projects\Exercise-TRP\RPA_Lite\properties_1.txt")
-prop_2 = np.loadtxt("Public Projects\Exercise-TRP\RPA_Lite\properties_2.txt")
-prop_3 = np.loadtxt("Public Projects\Exercise-TRP\RPA_Lite\properties_3.txt")
-Tc_RPA = np.concatenate((prop_1[:, 5], prop_2[:, 5], prop_3[:, 5]))
-gam_RPA = np.concatenate((prop_1[:, 7], prop_2[:, 7], prop_3[:, 7]))
-Gam_RPA = np.multiply((np.sqrt(gam_RPA)), np.power((1 + gam_RPA)/2, -(1 + gam_RPA) / (2*(gam_RPA - 1))))
-R_RPA = np.concatenate((8.314 / (prop_1[:, 6] / 1000), 8.314 / (prop_2[:, 6] / 1000), 8.314 / (prop_3[:, 6] / 1000)))
+def get_updated_regresion_rate():
+    prop_1 = np.loadtxt("Public Projects\Exercise-TRP\RPA_Lite\properties_1.txt")
+    prop_2 = np.loadtxt("Public Projects\Exercise-TRP\RPA_Lite\properties_2.txt")
+    prop_3 = np.loadtxt("Public Projects\Exercise-TRP\RPA_Lite\properties_3.txt")
+    Tc_RPA = np.concatenate((prop_1[:, 5], prop_2[:, 5], prop_3[:, 5]))
+    gam_RPA = np.concatenate((prop_1[:, 7], prop_2[:, 7], prop_3[:, 7]))
+    Gam_RPA = np.multiply((np.sqrt(gam_RPA)), np.power((1 + gam_RPA)/2, -(1 + gam_RPA) / (2*(gam_RPA - 1))))
+    R_RPA = np.concatenate((8.314 / (prop_1[:, 6] / 1000), 8.314 / (prop_2[:, 6] / 1000), 8.314 / (prop_3[:, 6] / 1000)))
 
-reg_adjusted = updated_regression_rate(ChamPres[:5991], Tc_RPA, Gam_RPA, At, Prop_den, R_RPA, w_value)
+    reg_adjusted = updated_regression_rate(ChamPres[:5991], Tc_RPA, Gam_RPA, At, Prop_den, R_RPA, w_value)
+    return(reg_adjusted)
+
+# plot data
+def plot_data(i):
+    Thrust_values, Ue_values, massflow_values =  Thrust(gam,R,Tc,Pa,ChamPres)
+
+    fig, ax = plt.subplots(2, 2, figsize=(12, 8))
+    ax[0][0].set_title("Chamber Pressure Performance interation number:" + str(i))
+    ax[0][0].plot(Time, np.array(ChamPres)/100000, 'r')
+    ax[0][0].set_xlabel('Time (s)')
+    ax[0][0].set_ylabel('Chamber Pressure (bar)')
+
+    ax[0][1].set_title("Regresion rate Performance interation number:" + str(i))
+    ax[0][1].plot(Time, Reg, 'b')
+    ax[0][1].set_xlabel('Time (s)')
+    ax[0][1].set_ylabel('Regression Rate (m/s)')
+
+    ax[1][0].set_title("web thickness Performance interation number:" + str(i))
+    ax[1][0].plot(Time, w_value, 'g')
+    ax[1][0].set_xlabel('Time (s)')
+    ax[1][0].set_ylabel('Web Thickness (m)')
+
+    ax[1][1].set_title("Momentum Performance interation number:" + str(i))
+    ax[1][1].plot(Time, Momentum, 'm')
+    ax[1][1].set_xlabel('Time (s)')
+    ax[1][1].set_ylabel('Momentum (kg m/s)')
+
+    fig, ax = plt.subplots(2, 1, figsize=(12, 8))
+
+    ax[0].set_title("Thrust interation number:" + str(i))
+    ax[0].plot(Time, Thrust_values, 'r')
+    ax[0].set_xlabel('Time (s)')
+    ax[0].set_ylabel('Thrust (N)')
+
+    ax[1].set_title("massflow interation number:" + str(i))
+    ax[1].plot(Time, massflow_values, 'g')
+    ax[1].set_xlabel('Time (s)')
+    ax[1].set_ylabel('mass flow (kg/s)')
+
+    #ax[1][0].set_title("Exaughst velocity no additive(at the moment)")
+    #ax[1][0].plot(Time, Ue_values, 'b')
+    #ax[1][0].set_xlabel('Time (s)')
+    #ax[1][0].set_ylabel('Exaughst velocity (m/s)')
+
+    plt.tight_layout()
+    plt.show()
+
+#RUN THE MAIN CODE LOOP MUST HAPPEN
+num_interations = 2
+for i in np.arange(0,num_interations,1):
+    main_code_loop(i)
+    print(i)
+    reg_adjusted = get_updated_regresion_rate()
+    plot_data(i)
+
+plot_data(num_interations)
 
 T_outer = T_outside(t_grain, reg_adjusted, w)
 
@@ -278,7 +357,6 @@ print(f"Burn time without additive: {round(burn_time, 2)} s")
 print(f"Burn time with additive: {round(burn_time_adj, 2)} s")
 
 # Calculate the thust, exuaghst velocity (semi-theoetical) and mass flow no additive at the moment
-Thrust_values, Ue_values, massflow_values =  Thrust(gam,R,Tc,Pa,ChamPres)
 
 # plot regression rate
 plt.figure()
@@ -294,47 +372,3 @@ plt.xlabel('Time (s)')
 plt.ylabel('Outer Temperature (K)')
 
 
-# plot data
-fig, ax = plt.subplots(2, 2, figsize=(12, 8))
-ax[0][0].set_title("Chamber Pressure Performance with No Additive")
-ax[0][0].plot(Time, ChamPres, 'r')
-ax[0][0].set_xlabel('Time (s)')
-ax[0][0].set_ylabel('Chamber Pressure (Pa)')
-
-ax[0][1].set_title("Regresion rate Performance with No Additive")
-ax[0][1].plot(Time, Reg, 'b')
-ax[0][1].set_xlabel('Time (s)')
-ax[0][1].set_ylabel('Regression Rate (m/s)')
-
-ax[1][0].set_title("web thickness Performance with No Additive")
-ax[1][0].plot(Time, w_value, 'g')
-ax[1][0].set_xlabel('Time (s)')
-ax[1][0].set_ylabel('Web Thickness (m)')
-
-ax[1][1].set_title("Momentum Performance with No Additive")
-ax[1][1].plot(Time, Momentum, 'm')
-ax[1][1].set_xlabel('Time (s)')
-ax[1][1].set_ylabel('Momentum (kg m/s)')
-
-plt.tight_layout()
-plt.show()
-
-fig, ax = plt.subplots(2, 1, figsize=(12, 8))
-
-ax[0][0].set_title("Thrust no additive(at the moment)")
-ax[0][0].plot(Time, Thrust_values, 'r')
-ax[0][0].set_xlabel('Time (s)')
-ax[0][0].set_ylabel('Thrust (N)')
-
-ax[0][1].set_title("massflow no additive(at the moment)")
-ax[0][1].plot(Time, massflow_values, 'g')
-ax[0][1].set_xlabel('Time (s)')
-ax[0][1].set_ylabel('mass flow (kg/s)')
-
-#ax[1][0].set_title("Exaughst velocity no additive(at the moment)")
-#ax[1][0].plot(Time, Ue_values, 'b')
-#ax[1][0].set_xlabel('Time (s)')
-#ax[1][0].set_ylabel('Exaughst velocity (m/s)')
-
-plt.tight_layout()
-plt.show()
