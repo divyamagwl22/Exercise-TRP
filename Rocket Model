@@ -125,6 +125,24 @@ def radiative_heat_flux(e2, a2, T_1, T_2):  #based on equation 3.25 on page 176 
     # moments of the burn
     return q_rad
 
+def Thrust(gam,R,Tc,Pa,Pc): #calaculates the thrust of the rocket dependent on the chamber Presure
+    F = np.zeros(len(Pc))
+    Ue = np.zeros(len(Pc))
+    m = np.zeros(len(Pc))
+    Cf = np.zeros(len(Pc))
+    Pe_Pc_val = Pe_Pc
+    for i in np.arange(0, len(Pc)):
+
+        Ue[i] = np.sqrt((2 * gam)/(gam - 1) * R * Tc * (1 - (Pe_Pc_val) ** ((gam - 1)/gam)))
+
+        m[i] = (Pc[i] * At)/c
+
+        Cf[i] = Gam * np.sqrt((2 * gam)/(gam - 1) * (1 - (Pe_Pc_val) ** ((gam - 1)/gam))) + (Pe_Pc_val - Pa/Pc[i])*Ae_At_giv
+
+        F[i] =  Cf[i] * c * m[i]  + (Pe_Pc_val*Pc[i] - Pa)*Ae
+
+    return F, Ue, m #gives the Thust as the main as well as the exaughst velocity and the mass flow 
+
 def updated_regression_rate(Pc, Tc, Gam, At, Prop_den, R, w):
     c_star = np.zeros(np.shape(Pc))
     updated_r = np.zeros(np.shape(Pc))
@@ -259,6 +277,9 @@ burn_time_adj = M_propellant / (Prop_den * reg_adj_av * np.mean(area[0:3751]))
 print(f"Burn time without additive: {round(burn_time, 2)} s")
 print(f"Burn time with additive: {round(burn_time_adj, 2)} s")
 
+# Calculate the thust, exuaghst velocity (semi-theoetical) and mass flow no additive at the moment
+Thrust_values, Ue_values, massflow_values =  Thrust(gam,R,Tc,Pa,ChamPres)
+
 # plot regression rate
 plt.figure()
 plt.plot(Time[0:5991], reg_adjusted, 'c')
@@ -294,6 +315,26 @@ ax[1][1].set_title("Momentum Performance with No Additive")
 ax[1][1].plot(Time, Momentum, 'm')
 ax[1][1].set_xlabel('Time (s)')
 ax[1][1].set_ylabel('Momentum (kg m/s)')
+
+plt.tight_layout()
+plt.show()
+
+fig, ax = plt.subplots(2, 1, figsize=(12, 8))
+
+ax[0][0].set_title("Thrust no additive(at the moment)")
+ax[0][0].plot(Time, Thrust_values, 'r')
+ax[0][0].set_xlabel('Time (s)')
+ax[0][0].set_ylabel('Thrust (N)')
+
+ax[0][1].set_title("massflow no additive(at the moment)")
+ax[0][1].plot(Time, massflow_values, 'g')
+ax[0][1].set_xlabel('Time (s)')
+ax[0][1].set_ylabel('mass flow (kg/s)')
+
+#ax[1][0].set_title("Exaughst velocity no additive(at the moment)")
+#ax[1][0].plot(Time, Ue_values, 'b')
+#ax[1][0].set_xlabel('Time (s)')
+#ax[1][0].set_ylabel('Exaughst velocity (m/s)')
 
 plt.tight_layout()
 plt.show()
