@@ -12,6 +12,8 @@ Len_grain = 0.107                           # m length of grain
 Prop_den = 1841                             # kg/m^3 propellant density
 Dt = 7.8E-3                                 # m throat diameter
 De = 16.74E-3                               # m nozzle exit diameter
+At_i = np.pi * (Dt/2)**2                    # initial throat area
+At_f = 0.5 * At_i                           # final throat area
 At = np.pi * (Dt/2)**2                      # m^2 throat area
 Ae = np.pi * (De/2)**2                      # M^2 nozzle exit
 R = 206.3                                   # 206.3E+6 # m^2 s^-2 K^-1 specific gas constant
@@ -159,11 +161,11 @@ def updated_regression_rate(Pc, Tc, Gam, At, Prop_den, R, w):
     for i in range(0, len(Pc)):
         c_star[i] = (1 / Gam[i]) * np.sqrt(R[i] * Tc[i])
         if Ab(w[i]) > 0 and Ab(w[i]) < 0.05:
-            updated_r[i] = (np.asarray(Pc[i]) * At) / (Prop_den * 0.01 * c_star[i])
+            updated_r[i] = (np.asarray(Pc[i]) * ((i / len(Pc))*(At_i - At_f) + At_i)) / (Prop_den * 0.01 * c_star[i])
         elif Ab(w[i]) == 0:
             updated_r[i] = 0
         else:
-           updated_r[i] = (np.asarray(Pc[i]) * At) / (Prop_den * Ab(w[i]) * c_star[i])
+           updated_r[i] = (np.asarray(Pc[i]) * ((i / len(Pc))*(At_i - At_f) + At_i)) / (Prop_den * Ab(w[i]) * c_star[i])
     
     return updated_r
 
