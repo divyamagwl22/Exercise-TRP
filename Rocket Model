@@ -38,6 +38,7 @@ a_grain = 0.8                               # absorptivity of the grain, needs a
 H_grain = 4.7E6                                   # J/kg heat from grain
 M_propellant = 0.758                        # mass of propellant [kg]
 T_amb = 298                                 # K ambient temperature
+porous_grain_factor = 1.00                  # We can add this factor to the regression rate to account for the extra air in the propellant.
 
 
 # initial values
@@ -68,12 +69,12 @@ def dw_dt(Pc,iter,t):
 
 def r(Pc,iter,t): # converts to mm and Mpa then converts back to give r in m/s
     if iter == 0:
-        r_val = (a * ((Pc * 1E-6) ** n) ) * 1E-3
+        r_val = porous_grain_factor * (a * ((Pc * 1E-6) ** n) ) * 1E-3
     else:
         inter_value = np.arange(0,t_max,dt)
         index = np.where(inter_value == t)[0][0]
         if index < 5991:
-            r_val = reg_adjusted[index] 
+            r_val = porous_grain_factor * reg_adjusted[index] 
         else:
             r_val = reg_adjusted[-1]
     #print(r_val)
@@ -275,12 +276,15 @@ def main_code_loop(iter): #iter is the iteration number used to iterate the code
         # Momentum.append(Prop_den * Reg[-1] * Ab(w) * w * Len_grain)
     #resets values to initial conditions
     w,Vc,Pc = 0, np.pi * (R_int**2) * Len_grain, 2E+6 
+    if iter == 0:
+        reg_original = Reg
+        return reg_original
 
 # Using RPA Lite, I create an array of Tc, Gam, and R based on the input chamber pressure.
 def get_updated_regresion_rate():
-    prop_1 = np.loadtxt("Public Projects\Exercise-TRP\RPA_Lite\properties_1.txt")
-    prop_2 = np.loadtxt("Public Projects\Exercise-TRP\RPA_Lite\properties_2.txt")
-    prop_3 = np.loadtxt("Public Projects\Exercise-TRP\RPA_Lite\properties_3.txt")
+    prop_1 = np.loadtxt("RPA_Lite\properties_1.txt")
+    prop_2 = np.loadtxt("RPA_Lite\properties_2.txt")
+    prop_3 = np.loadtxt("RPA_Lite\properties_3.txt")
     Tc_RPA = np.concatenate((prop_1[:, 5], prop_2[:, 5], prop_3[:, 5]))
     gam_RPA = np.concatenate((prop_1[:, 7], prop_2[:, 7], prop_3[:, 7]))
     Gam_RPA = np.multiply((np.sqrt(gam_RPA)), np.power((1 + gam_RPA)/2, -(1 + gam_RPA) / (2*(gam_RPA - 1))))
@@ -294,42 +298,42 @@ def plot_data(i):
     Thrust_values, Ue_values, massflow_values =  Thrust(gam,R,Tc,Pa,ChamPres)
 
     fig, ax = plt.subplots(2, 2, figsize=(12, 8))
-    ax[0][0].set_title("Chamber Pressure Performance interation number:" + str(i))
+    ax[0][0].set_title("Chamber Pressure iteration number:" + str(i))
     ax[0][0].plot(Time, np.array(ChamPres)/100000, 'r')
     ax[0][0].set_xlabel('Time (s)')
     ax[0][0].set_ylabel('Chamber Pressure (bar)')
 
-    ax[0][1].set_title("Regresion rate Performance interation number:" + str(i))
+    ax[0][1].set_title("Regression rate iteration number:" + str(i))
     ax[0][1].plot(Time, Reg, 'b')
     ax[0][1].set_xlabel('Time (s)')
     ax[0][1].set_ylabel('Regression Rate (m/s)')
 
-    ax[1][0].set_title("web thickness Performance interation number:" + str(i))
+    ax[1][0].set_title("web thickness iteration number:" + str(i))
     ax[1][0].plot(Time, w_value, 'g')
     ax[1][0].set_xlabel('Time (s)')
     ax[1][0].set_ylabel('Web Thickness (m)')
 
-    ax[1][1].set_title("Momentum Performance interation number:" + str(i))
+    ax[1][1].set_title("Momentum iteration number:" + str(i))
     ax[1][1].plot(Time, Momentum, 'm')
     ax[1][1].set_xlabel('Time (s)')
     ax[1][1].set_ylabel('Momentum (kg m/s)')
 
     fig, ax = plt.subplots(2, 1, figsize=(12, 8))
 
-    ax[0].set_title("Thrust interation number:" + str(i))
+    ax[0].set_title("Thrust iteration number:" + str(i))
     ax[0].plot(Time, Thrust_values, 'r')
     ax[0].set_xlabel('Time (s)')
     ax[0].set_ylabel('Thrust (N)')
 
-    ax[1].set_title("massflow interation number:" + str(i))
+    ax[1].set_title("Mass Flow Rate iteration number:" + str(i))
     ax[1].plot(Time, massflow_values, 'g')
     ax[1].set_xlabel('Time (s)')
     ax[1].set_ylabel('mass flow (kg/s)')
 
-    #ax[1][0].set_title("Exaughst velocity no additive(at the moment)")
+    #ax[1][0].set_title("Exhaust velocity no additive(at the moment)")
     #ax[1][0].plot(Time, Ue_values, 'b')
     #ax[1][0].set_xlabel('Time (s)')
-    #ax[1][0].set_ylabel('Exaughst velocity (m/s)')
+    #ax[1][0].set_ylabel('Exhaust velocity (m/s)')
 
     plt.tight_layout()
     plt.show()
@@ -337,7 +341,10 @@ def plot_data(i):
 #RUN THE MAIN CODE LOOP MUST HAPPEN
 num_interations = 2
 for i in np.arange(0,num_interations,1):
-    main_code_loop(i)
+    if i == 0:
+        reg_original = main_code_loop(i)
+    else:
+        main_code_loop(i)
     print(i)
     reg_adjusted = get_updated_regresion_rate()
     plot_data(i)
@@ -346,7 +353,7 @@ plot_data(num_interations)
 
 T_outer = T_outside(t_grain, reg_adjusted, w)
 
-reg_av = np.mean(Reg[0:3751])
+reg_av = np.mean(reg_original[0:3751])
 reg_adj_av = np.mean(reg_adjusted[0:3751])
 area=[]
 for i in range(0, len(w_value)):
