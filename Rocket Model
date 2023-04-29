@@ -2,27 +2,122 @@ import numpy as np
 import matplotlib.pyplot as plt
 import math
 from scipy.optimize import fsolve
-
+from scipy.interpolate import UnivariateSpline
 import pandas as pd
+
 # DATA 1
 # Read CSV file for Thermocouple data from Datasheet 1
-Thermocouples1 = pd.read_csv('Thermocouples1.csv')
+Thermocouples1 = pd.read_csv('Public Projects\Exercise-TRP\Thermocouples1.csv') #Public Projects\Exercise-TRP\
 # Convert data to numpy accessable
 T1 = Thermocouples1.to_numpy() #TC0 / TC1 / TC2 / TC3 / Autozero / CJC / Ticks [us]
-Pressure1 = pd.read_csv('Pressure1.csv')
+Pressure1 = pd.read_csv('Public Projects\Exercise-TRP\Pressure1.csv')
 P1 = Pressure1.to_numpy() #PS0 / Ticks [us]
-Load1 = pd.read_csv('Load1.csv')
+Load1 = pd.read_csv('Public Projects\Exercise-TRP\Load1.csv')
 L1 = Load1.to_numpy() #LC0 / Ticks [us]
 
 # DATA 2
-Thermocouples2 = pd.read_csv('Thermocouples2.csv')
+Thermocouples2 = pd.read_csv('Public Projects\Exercise-TRP\Thermocouples2.csv')
 T2 = Thermocouples2.to_numpy() #TC0 / TC1 / TC2 / TC3 / Autozero / CJC / Ticks [us]
-Pressure2 = pd.read_csv('Pressure2.csv')
+Pressure2 = pd.read_csv('Public Projects\Exercise-TRP\Pressure2.csv')
 P2 = Pressure2.to_numpy() #PS0 / Ticks [us]
-Load2 = pd.read_csv('Load2.csv')
+Load2 = pd.read_csv('Public Projects\Exercise-TRP\Load2.csv')
 L2 = Load2.to_numpy() #LC0 / Ticks [us]
 
+def Plot_Experiment_data(P1,P2,L1,L2): # BE WARNED THIS CAN TAKE A LOT OF TIME <10 MINUTES WITH SPLINES
+    P1_start, P1_end = 70000, 90000
+    L1_start, L1_end = 70000, 90000 
+    P2_start, P2_end = 70000, 130000
+    L2_start, L2_end = 70000, 130000 
+    #splines Options
+    Spline_ON = True # yes to splines 
+    k_val = 3 # spline power order 3 is good can go up to 5
+    Spline_res = 0.01 # reselution of spline
 
+    #Converts data to the correct units Bar, sec
+    for i in np.arange(0,len(P1[:,1])):
+        P1[i,0] = P1[i,0] * 6250 - 24
+        P1[i,1] = P1[i,1]/10E+6 
+    #Converts data to the correct units Bar, sec
+    for i in np.arange(0,len(P2[:,1])):
+        P2[i,0] = P2[i,0] * 6250 - 24
+        P2[i,1] = P2[i,1]/10E+6   
+    #Converts data to the correct units Newtons, sec
+    for i in np.arange(0,len(L1[:,1])):
+        L1[i,0] = L1[i,0] * (-1087254) - 63.2972
+        L1[i,1] = L1[i,1]/10E+6 
+    #Converts data to the correct units Newtons, sec
+    for i in np.arange(0,len(L2[:,1])):
+        L2[i,0] = L2[i,0] * (-1087254) - 63.2972
+        L2[i,1] = L2[i,1]/10E+6   
+
+    # Adjust time for Pressure 1,2 and Load cells
+    P1[:, 1] = P1[:, 1] - P1[P1_start, 1]
+    P2[:, 1] = P2[:, 1] - P2[P2_start, 1]
+    L1[:, 1] = L1[:, 1] - L1[L1_start, 1]
+    L2[:, 1] = L2[:, 1] - L2[L1_start, 1]
+
+    #calculate the regresion rate 
+    regression_rate_P1 = a * ((P1[:,0]/10) ** n) * porous_grain_factor
+    regression_rate_P2 = a * ((P2[:,0]/10) ** n) * porous_grain_factor
+
+    #Plot The data 
+    fig, ax1 = plt.subplots(2, 2, figsize=(12, 8))
+    #Pressure plot, Load cell, and regresion rate for 1 
+    ax1[0][0].set_title("Data Showing the Pressure for the failed engine")
+    ax1[0][0].plot(P1[P1_start:P1_end,1], P1[P1_start:P1_end,0], 'r')
+    ax1[0][0].set_xlabel('Time (s)')
+    ax1[0][0].set_ylabel('Chamber Pressure (bar)')
+
+    ax1[0][1].set_title("Data Showing the Load cell thrust for the failed engine")
+    ax1[0][1].plot(L1[L1_start:L1_end,1], L1[L1_start:L1_end,0], 'b')
+    ax1[0][1].set_xlabel('Time (s)')
+    ax1[0][1].set_ylabel('Thrust (N)')
+
+    ax1[1][0].set_title("Data Showing the regresion rate for the failed engine")
+    ax1[1][0].plot(P1[P1_start:P1_end,1], regression_rate_P1[P1_start:P1_end], 'g')
+    ax1[1][0].set_xlabel('Time (s)')
+    ax1[1][0].set_ylabel('regresion rate (mm/s)')
+
+    #Plot The data 
+    fig, ax2 = plt.subplots(2, 2, figsize=(12, 8))
+    #Pressure plot, Load cell, and regresion rate for 1 
+    ax2[0][0].set_title("Data Showing the Pressure for the refrence engine")
+    ax2[0][0].plot(P2[P2_start:P2_end,1], P2[P2_start:P2_end,0], 'r')
+    ax2[0][0].set_xlabel('Time (s)')
+    ax2[0][0].set_ylabel('Chamber Pressure (bar)')
+
+    ax2[0][1].set_title("Data Showing the Load cell thrust for the refrence engine")
+    ax2[0][1].plot(L2[L2_start:L2_end,1], L2[L2_start:L2_end,0], 'b')
+    ax2[0][1].set_xlabel('Time (s)')
+    ax2[0][1].set_ylabel('Thrust (N)')
+
+    ax2[1][0].set_title("Data Showing the regresion rate for the refrence engine")
+    ax2[1][0].plot(P2[P2_start:P2_end,1], regression_rate_P2[P2_start:P2_end], 'g')
+    ax2[1][0].set_xlabel('Time (s)')
+    ax2[1][0].set_ylabel('regresion rate (mm/s)')
+
+    
+    if Spline_ON == True:
+        #gernerate splines for load cell data
+        spl_L1 = UnivariateSpline(L1[L1_start:L1_end,1], L1[L1_start:L1_end,0],s=len(L1[L1_start:L1_end,0]),k=k_val)
+        x2_L1 = np.arange(L1[L1_start,1],L1[L1_end,1],Spline_res)
+        spl_L2 = UnivariateSpline(L2[L2_start:L2_end,1], L2[L2_start:L2_end,0],s=len(L2[L2_start:L2_end,0]),k=k_val)
+        x2_L2 = np.arange(L2[L2_start,1],L2[L2_end,1],Spline_res)
+
+        #gernerate splines for pressure data
+        spl_P1 = UnivariateSpline(P1[P1_start:P1_end,1], P1[P1_start:P1_end,0],s=len(P1[P1_start:P1_end,0]),k=k_val)
+        x2_P1 = np.arange(P1[P1_start,1],P1[P1_end,1],Spline_res)
+        spl_P2 = UnivariateSpline(P2[P2_start:P2_end,1], P2[P2_start:P2_end,0],s=len(P2[P2_start:P2_end,0]),k=k_val)
+        x2_P2 = np.arange(P2[P2_start,1],P2[P2_end,1],Spline_res)
+
+        #plot spline data 
+        ax1[0][0].plot(x2_P1, spl_P1(x2_P1), c='b')
+        ax1[0][1].plot(x2_L1, spl_L1(x2_L1), c='r')
+
+        ax2[0][0].plot(x2_P2, spl_P2(x2_P2), c='b')
+        ax2[0][1].plot(x2_L2, spl_L2(x2_L2), c='r')
+
+    plt.show()
 
 # Constants
 a = 5.132                                   #mm/s/MPa
@@ -305,9 +400,9 @@ def main_code_loop(iter): #iter is the iteration number used to iterate the code
 
 # Using RPA Lite, I create an array of Tc, Gam, and R based on the input chamber pressure.
 def get_updated_regresion_rate():
-    prop_1 = np.loadtxt("RPA_Lite\properties_1.txt")
-    prop_2 = np.loadtxt("RPA_Lite\properties_2.txt")
-    prop_3 = np.loadtxt("RPA_Lite\properties_3.txt")
+    prop_1 = np.loadtxt("Public Projects\Exercise-TRP\RPA_Lite\properties_1.txt") #Public Projects\Exercise-TRP\RPA_Lite\properties_1.txt
+    prop_2 = np.loadtxt("Public Projects\Exercise-TRP\RPA_Lite\properties_2.txt")
+    prop_3 = np.loadtxt("Public Projects\Exercise-TRP\RPA_Lite\properties_3.txt")
     Tc_RPA = np.concatenate((prop_1[:, 5], prop_2[:, 5], prop_3[:, 5]))
     gam_RPA = np.concatenate((prop_1[:, 7], prop_2[:, 7], prop_3[:, 7]))
     Gam_RPA = np.multiply((np.sqrt(gam_RPA)), np.power((1 + gam_RPA)/2, -(1 + gam_RPA) / (2*(gam_RPA - 1))))
@@ -370,9 +465,10 @@ for i in np.arange(0,num_interations,1):
         main_code_loop(i)
     print(i)
     reg_adjusted = get_updated_regresion_rate()
-    plot_data(i)
+    #plot_data(i)
 
-plot_data(num_interations)
+#plot_data(num_interations) #plots the last iteration
+Plot_Experiment_data(P1,P2,L1,L2) #this will take a whikle to load
 
 T_outer = T_outside(t_grain, reg_adjusted, w)
 

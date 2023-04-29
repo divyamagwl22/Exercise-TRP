@@ -15,9 +15,9 @@ for i in np.arange(0,len(P1[:,1])):
     P1[i,1] = P1[i,1]/10E+6 
 
 P1[:,1] = P1[:,1] - P1[70000,1]
-spl_P1 = splrep(P1[70000:90000,1], P1[70000:90000,0])
-x2_P1 = np.arange(P1[70000,1],P1[90000,1], 0.01)
-y2_P1 = splev(x2_P1, spl_P1)
+#spl_P1 = splrep(P1[70000:90000,1], P1[70000:90000,0])
+#x2_P1 = np.arange(P1[70000,1],P1[90000,1], 0.01)
+#y2_P1 = splev(x2_P1, spl_P1)
 
 #plt.plot(P1[70000:90000,1],P1[70000:90000,0],"o",x2_P1,y2_P1)
 #plt.show()
@@ -30,14 +30,13 @@ for i in np.arange(0,len(L2[:,1])):
     L2[i,0] = L2[i,0] * (-1087254) - 63.2972
     L2[i,1] = L2[i,1]/10E+6 
 
-spl_L1 = splrep(L1[70000:90000,1], L1[70000:90000,0])
-x2_L1 = np.arange(L1[70000,1],L1[90000,1], 0.01)
-y2_L1 = splev(x2_L1, spl_L1)
+#spl_L1 = splrep(L1[70000:90000,1], L1[70000:90000,0])
+#x2_L1 = np.arange(L1[70000,1],L1[90000,1], 0.01)
+#y2_L1 = splev(x2_L1, spl_L1)
 
-spl_L2 = UnivariateSpline(L2[80000:120000,1], L2[80000:120000,0])
+spl_L2 = UnivariateSpline(L2[80000:120000,1], L2[80000:120000,0],s=len(L2[80000:120000,0]),k=5)
 x2_L2 = np.arange(L2[80000,1],L2[120000,1],0.01)
 
-spl_L2.set_smoothing_factor(290000)
 plt.plot(L2[80000:120000,1],L2[80000:120000,0],c="r")
 plt.plot(x2_L2,spl_L2(x2_L2),c='b')
 plt.show()
