@@ -30,8 +30,8 @@ def Plot_Experiment_data(P1,P2,L1,L2): # BE WARNED THIS CAN TAKE A LOT OF TIME <
     L2_start, L2_end = 70000, 130000 
     #splines Options
     Spline_ON = True # yes to splines 
-    k_val = 3 # spline power order 3 is good can go up to 5
-    Spline_res = 0.01 # reselution of spline
+    k_val = 5 # spline power order 3 is good can go up to 5
+    Spline_res = 0.001 # reselution of spline
 
     #Converts data to the correct units Bar, sec
     for i in np.arange(0,len(P1[:,1])):
@@ -95,27 +95,44 @@ def Plot_Experiment_data(P1,P2,L1,L2): # BE WARNED THIS CAN TAKE A LOT OF TIME <
     ax2[1][0].plot(P2[P2_start:P2_end,1], regression_rate_P2[P2_start:P2_end], 'g')
     ax2[1][0].set_xlabel('Time (s)')
     ax2[1][0].set_ylabel('regresion rate (mm/s)')
-
     
     if Spline_ON == True:
         #gernerate splines for load cell data
+        print("Starting of Spline Generation")
         spl_L1 = UnivariateSpline(L1[L1_start:L1_end,1], L1[L1_start:L1_end,0],s=len(L1[L1_start:L1_end,0]),k=k_val)
         x2_L1 = np.arange(L1[L1_start,1],L1[L1_end,1],Spline_res)
         spl_L2 = UnivariateSpline(L2[L2_start:L2_end,1], L2[L2_start:L2_end,0],s=len(L2[L2_start:L2_end,0]),k=k_val)
         x2_L2 = np.arange(L2[L2_start,1],L2[L2_end,1],Spline_res)
 
         #gernerate splines for pressure data
+        print("Pressure Spines are Done")
         spl_P1 = UnivariateSpline(P1[P1_start:P1_end,1], P1[P1_start:P1_end,0],s=len(P1[P1_start:P1_end,0]),k=k_val)
         x2_P1 = np.arange(P1[P1_start,1],P1[P1_end,1],Spline_res)
-        spl_P2 = UnivariateSpline(P2[P2_start:P2_end,1], P2[P2_start:P2_end,0],s=len(P2[P2_start:P2_end,0]),k=k_val)
+        spl_P2 = UnivariateSpline(P2[P2_start:P2_end,1], P2[P2_start:P2_end,0],s=len(P2[P2_start:P2_end,0])*5,k=k_val)
         x2_P2 = np.arange(P2[P2_start,1],P2[P2_end,1],Spline_res)
+        
+        #gernerate splines for regresion data
+        print("Load Cell Spines are Done")
+        
+        regression_rate_P1 = np.nan_to_num(regression_rate_P1, nan=0.0) #reg has nan values due to pressure having neg values so replace all nan with 0
+        regression_rate_P2 = np.nan_to_num(regression_rate_P2, nan=0.0) #not great but ok when P>0 consistantly ie the actural burn
 
+        spl_r1 = UnivariateSpline(P1[P1_start:P1_end,1], regression_rate_P1[P1_start:P1_end],s=len(regression_rate_P1[P1_start:P1_end])/10,k=k_val)
+        x2_r1 = np.arange(P1[P1_start,1],P2[P1_end,1],Spline_res)
+        spl_r2 = UnivariateSpline(P2[P2_start:P2_end,1], regression_rate_P2[P2_start:P2_end],s=len(regression_rate_P2[P2_start:P2_end]),k=k_val)
+        x2_r2 = np.arange(P2[P2_start,1],P2[P2_end,1],Spline_res)
+        #r1_ploy = np.polyfit(P1[P1_start:P1_end,1], regression_rate_P1[P1_start:P1_end],deg=regression_rate_P1[P1_start:P1_end])
+        print("All Spines are Done")
+        
         #plot spline data 
         ax1[0][0].plot(x2_P1, spl_P1(x2_P1), c='b')
         ax1[0][1].plot(x2_L1, spl_L1(x2_L1), c='r')
+        ax1[1][0].plot(x2_r1, spl_r1(x2_r1), c='b')
+        #ax1[1][0].plot(P1[P1_start:P1_end,1], r1_ploy, c='g')
 
         ax2[0][0].plot(x2_P2, spl_P2(x2_P2), c='b')
         ax2[0][1].plot(x2_L2, spl_L2(x2_L2), c='r')
+        ax2[1][0].plot(x2_r2, spl_r2(x2_r2), c='b')
 
     plt.show()
 
