@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd 
 import matplotlib.pyplot as plt
-from scipy.interpolate import splev, splrep
+from scipy.interpolate import splev, splrep, UnivariateSpline
 
 # DATA 1
 # Read CSV file for Thermocouple data from Datasheet 1
@@ -49,29 +49,39 @@ P2_time = P2[:, 1]
 regression_rate_P2 = a * (P2_pressure ** n)
 
 # Adjust time for Pressure 1
-P1[:, 1] = P1[:, 1] - P1[70000, 1]
+P1[:, 1] = P1[:, 1] - P1[70000, 1]\
 
-# Apply spline for Pressure 1 data from 70000 to 90000
-spl = splrep(P1[70000:90000, 1], P1[70000:90000, 0])
-x2 = np.arange(P1[70000, 1], P1[90000, 1], 0.01)
-y2 = splev(x2, spl)
+#Adjust time for Pressure 2
+P2[:, 1] = P2[:, 1] - P2[60000, 1]\
+
+# Apply UnivariateSpline for Pressure 1 data from 70000 to 90000
+spl_P1 = UnivariateSpline(P1[70000:90000, 1], P1[70000:90000, 0], s=100000)
+x2_P1 = np.arange(P1[70000, 1], P1[90000, 1], 0.01)
+y2_P1 = spl_P1(x2_P1)
+
+# Apply UnivariateSpline for Pressure 2 data from 60000 to 120000
+spl_P2 = UnivariateSpline(P2[60000:120000, 1], P2[60000:120000, 0], s=290000)
+x2_P2 = np.arange(P2[60000, 1], P2[120000, 1], 0.01)
+y2_P2 = spl_P2(x2_P2)
 
 # Plot the Pressure 1 data with the spline curve
 plt.figure(figsize=(10, 5))
 plt.plot(P1[70000:90000, 1], P1[70000:90000, 0], "o", label='Data')
-plt.plot(x2, y2, "r-", label='Spline curve')
+plt.plot(x2_P1, y2_P1, "r-", label='Spline curve')
 plt.xlabel('Time (seconds)')
-plt.ylabel('Pressure (MPa)')
-plt.title('Pressure vs Time (Pressure 1, indices 70000 to 90000)')
+plt.ylabel('Regression Rate')
+plt.title('Regression Rate vs Time')
 plt.legend()
 plt.grid(True)
 plt.show()
 
-# Plot the regression rate data for Pressure 2
+# Plot the Pressure 2 data with the spline curve
 plt.figure(figsize=(10, 5))
-plt.plot(P2_time, regression_rate_P2, 'bo')
+plt.plot(P2[60000:120000, 1], P2[60000:120000, 0], "o", label='Data')
+plt.plot(x2_P2, y2_P2, "r-", label='Spline curve')
 plt.xlabel('Time (seconds)')
-plt.ylabel('Regression Rate (mm/s)')
-plt.title('Regression Rate vs Time (Pressure 2)')
+plt.ylabel('Regression Rate')
+plt.title('Regression Rate vs Time')
+plt.legend()
 plt.grid(True)
 plt.show()
