@@ -31,11 +31,13 @@ n = 0.222 #
 # Calibrate Pressure 1 data
 for i in np.arange(0, len(P1[:, 1])):
     P1[i, 0] = P1[i, 0] * 6250 - 24
+    P1[i, 0] = P1[i, 0]/10
     P1[i, 1] = P1[i, 1] / 1e7
 
 # Calibrate Pressure 2 data
 for i in np.arange(0, len(P2[:, 1])):
     P2[i, 0] = P2[i, 0] * 6250 - 24
+    P2[i, 0] = P2[i, 0]/10
     P2[i, 1] = P2[i, 1] / 1e7
 
 # Calculate regression rate for Pressure 1
@@ -55,12 +57,12 @@ P1[:, 1] = P1[:, 1] - P1[70000, 1]\
 P2[:, 1] = P2[:, 1] - P2[60000, 1]\
 
 # Apply UnivariateSpline for Pressure 1 data from 70000 to 90000
-spl_P1 = UnivariateSpline(P1[70000:90000, 1], P1[70000:90000, 0], s=100000)
+spl_P1 = UnivariateSpline(P1[70000:90000, 1], P1[70000:90000, 0], s=3000)
 x2_P1 = np.arange(P1[70000, 1], P1[90000, 1], 0.01)
 y2_P1 = spl_P1(x2_P1)
 
 # Apply UnivariateSpline for Pressure 2 data from 60000 to 120000
-spl_P2 = UnivariateSpline(P2[60000:120000, 1], P2[60000:120000, 0], s=290000)
+spl_P2 = UnivariateSpline(P2[60000:120000, 1], P2[60000:120000, 0], s=2900)
 x2_P2 = np.arange(P2[60000, 1], P2[120000, 1], 0.01)
 y2_P2 = spl_P2(x2_P2)
 
