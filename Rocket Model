@@ -31,24 +31,24 @@ def Plot_Experiment_data(P1,P2,L1,L2): # BE WARNED THIS CAN TAKE A LOT OF TIME <
     #splines Options
     Spline_ON = True # yes to splines 
     k_val = 5 # spline power order 3 is good can go up to 5
-    Spline_res = 0.001 # reselution of spline
+    Spline_res = 0.1 # reselution of spline
 
     #Converts data to the correct units Bar, sec
     for i in np.arange(0,len(P1[:,1])):
         P1[i,0] = P1[i,0] * 6250 - 24
-        P1[i,1] = P1[i,1]/10E+6 
+        P1[i,1] = P1[i,1]/(1E+6) 
     #Converts data to the correct units Bar, sec
     for i in np.arange(0,len(P2[:,1])):
         P2[i,0] = P2[i,0] * 6250 - 24
-        P2[i,1] = P2[i,1]/10E+6   
+        P2[i,1] = P2[i,1]/(1E+6)   
     #Converts data to the correct units Newtons, sec
     for i in np.arange(0,len(L1[:,1])):
         L1[i,0] = L1[i,0] * (-1087254) - 63.2972
-        L1[i,1] = L1[i,1]/10E+6 
+        L1[i,1] = L1[i,1]/(1E+6) 
     #Converts data to the correct units Newtons, sec
     for i in np.arange(0,len(L2[:,1])):
         L2[i,0] = L2[i,0] * (-1087254) - 63.2972
-        L2[i,1] = L2[i,1]/10E+6   
+        L2[i,1] = L2[i,1]/(1E+6)   
 
     # Adjust time for Pressure 1,2 and Load cells
     P1[:, 1] = P1[:, 1] - P1[P1_start, 1]
@@ -69,12 +69,12 @@ def Plot_Experiment_data(P1,P2,L1,L2): # BE WARNED THIS CAN TAKE A LOT OF TIME <
     ax1[0][0].set_ylabel('Chamber Pressure (bar)')
 
     ax1[0][1].set_title("Load Cell Thrust - Failed Engine")
-    ax1[0][1].plot(L1[L1_start:L1_end,1], L1[L1_start:L1_end,0], 'b')
+    ax1[0][1].plot(L1[L1_start:L1_end,1], L1[L1_start:L1_end,0], 'r')
     ax1[0][1].set_xlabel('Time (s)')
     ax1[0][1].set_ylabel('Thrust (N)')
 
     ax1[1][0].set_title("Regression Rate - Failed Engine")
-    ax1[1][0].plot(P1[P1_start:P1_end,1], regression_rate_P1[P1_start:P1_end], 'g')
+    ax1[1][0].plot(P1[P1_start:P1_end,1], regression_rate_P1[P1_start:P1_end], 'r')
     ax1[1][0].set_xlabel('Time (s)')
     ax1[1][0].set_ylabel('regression rate (mm/s)')
 
@@ -87,12 +87,12 @@ def Plot_Experiment_data(P1,P2,L1,L2): # BE WARNED THIS CAN TAKE A LOT OF TIME <
     ax2[0][0].set_ylabel('Chamber Pressure (bar)')
 
     ax2[0][1].set_title("Load Cell Thrust - Reference Engine")
-    ax2[0][1].plot(L2[L2_start:L2_end,1], L2[L2_start:L2_end,0], 'b')
+    ax2[0][1].plot(L2[L2_start:L2_end,1], L2[L2_start:L2_end,0], 'r')
     ax2[0][1].set_xlabel('Time (s)')
     ax2[0][1].set_ylabel('Thrust (N)')
 
     ax2[1][0].set_title("Regression Rate - Reference Engine")
-    ax2[1][0].plot(P2[P2_start:P2_end,1], regression_rate_P2[P2_start:P2_end], 'g')
+    ax2[1][0].plot(P2[P2_start:P2_end,1], regression_rate_P2[P2_start:P2_end], 'r')
     ax2[1][0].set_xlabel('Time (s)')
     ax2[1][0].set_ylabel('regresion rate (mm/s)')
     
@@ -495,8 +495,6 @@ def Main_loop():
             main_code_loop(i)
         plot_data(i)
 
-    
-
 def Error_Loop():
     global reg_adjusted, reg_original, porosity, final_area
     pc_max = []
@@ -533,7 +531,7 @@ def Error_Loop():
         burn_time_adj = M_propellant / (Prop_den * reg_adj_av * np.mean(area[0:3751]))
         print(f"Burn time without additive: {round(burn_time, 2)} s")
         print(f"Burn time with additive: {round(burn_time_adj, 2)} s")
-
+    
     #plots the effects due to throat area
     fig, (ax1, ax2) = plt.subplots(2, 1)
     ax1.plot(np.array(At_f) / At_i, np.array(pc_max)/100000)
@@ -565,6 +563,19 @@ def Error_Loop():
 
         #T_outer = T_outside(t_grain, reg_adjusted, w)
 
+        pc_max.append(max(ChamPres))
+        Thrust_values, Ue_values, massflow_values =  Thrust(gam,R,Tc,Pa,ChamPres)
+        thrust_max.append(max(Thrust_values))
+        reg_av = np.mean(reg_original[0:3751])
+        reg_adj_av = np.mean(reg_adjusted[0:3751])
+        area=[]
+        for i in range(0, len(w_value)):
+            area.append(Ab(w_value[i]))
+        burn_time = M_propellant / (Prop_den * reg_av * np.mean(area[0:3751]))
+        burn_time_adj = M_propellant / (Prop_den * reg_adj_av * np.mean(area[0:3751]))
+        print(f"Burn time without additive: {round(burn_time, 2)} s")
+        print(f"Burn time with additive: {round(burn_time_adj, 2)} s")
+
     fig, (ax1, ax2) = plt.subplots(2, 1)
     ax1.plot(porous_grain_factor, np.array(pc_max)/100000)
     ax1.set_xlabel('Porosity Factor')
@@ -576,9 +587,9 @@ def Error_Loop():
     plt.show()
 
 #Does all the Calculations
-Main_loop()
+#Main_loop()
 #Error_Loop()
-#Plot_Experiment_data()
+Plot_Experiment_data(P1,P2,L1,L2)
 
 
 # Calculate the thust, exuaghst velocity (semi-theoetical) and mass flow no additive at the moment
@@ -605,10 +616,10 @@ plt.plot(Time[0:5991], reg_adjusted, 'c')
 plt.title('Regression Rate with Additive')
 plt.xlabel('Time (s)')
 plt.ylabel('Regression Rate (m/s)')
-
+#plt.show()
 # plot outer temperature
 plt.figure()
 plt.plot(Time[0:5991], T_outer, 'c')
 plt.xlabel('Time (s)')
 plt.ylabel('Outer Temperature (K)')
-
+#plt.show()
