@@ -146,7 +146,7 @@ Prop_den = 1841                             # kg/m^3 propellant density
 Dt = 7.8E-3                                 # m throat diameter
 De = 16.74E-3                               # m nozzle exit diameter
 At_i = np.pi * (Dt/2)**2                    # initial throat area
-At_f = [At_i]                                 # final throat area
+At_f = [At_i, 0.5*At_i]                                 # final throat area
 At = np.pi * (Dt/2)**2                      # m^2 throat area
 Ae = np.pi * (De/2)**2                      # M^2 nozzle exit
 R = 206.3                                   # 206.3E+6 # m^2 s^-2 K^-1 specific gas constant
@@ -173,7 +173,7 @@ a_grain = 0.8                               # absorptivity of the grain, needs a
 H_grain = 4.7E6                                   # J/kg heat from grain
 M_propellant = 0.758                        # mass of propellant [kg]
 T_amb = 298                                 # K ambient temperature
-porous_grain_factor = [1] # We can add this factor to the regression rate to account for the extra air in the propellant.
+porous_grain_factor = [1, 2] # We can add this factor to the regression rate to account for the extra air in the propellant.
 
 
 # initial values
@@ -516,25 +516,26 @@ for j in range(0, len(At_f)):
         print(f"Burn time without additive: {round(burn_time, 2)} s")
         print(f"Burn time with additive: {round(burn_time_adj, 2)} s")
 
-fig, (ax1, ax2) = plt.subplots(2, 1)
-ax1.plot(np.array(At_f) / At_i, np.array(pc_max)/100000)
-ax1.set_xlabel('Final Throat Area')
-ax1.set_ylabel('Maximum Chamber Pressure (bar)')
-ax1.set_title('Effect of Clogged Nozzle Throat on Pressure and Thrust')
-ax2.plot(np.array(At_f) / At_i, thrust_max)
-ax2.set_xlabel('Final Throat Area')
-ax2.set_ylabel('Maximum Thrust (N)')
-plt.show()
+if len(At_f) == 1 or len(porous_grain_factor) == 1:
+    fig, (ax1, ax2) = plt.subplots(2, 1)
+    ax1.plot(np.array(At_f) / At_i, np.array(pc_max)/100000)
+    ax1.set_xlabel('Final Throat Area')
+    ax1.set_ylabel('Maximum Chamber Pressure (bar)')
+    ax1.set_title('Effect of Clogged Nozzle Throat on Pressure and Thrust')
+    ax2.plot(np.array(At_f) / At_i, thrust_max)
+    ax2.set_xlabel('Final Throat Area')
+    ax2.set_ylabel('Maximum Thrust (N)')
+    plt.show()
 
-fig, (ax1, ax2) = plt.subplots(2, 1)
-ax1.plot(porous_grain_factor, np.array(pc_max)/100000)
-ax1.set_xlabel('Porosity Factor')
-ax1.set_ylabel('Maximum Chamber Pressure (bar)')
-ax1.set_title('Effect of Porosity on Pressure and Thrust')
-ax2.plot(porous_grain_factor, thrust_max)
-ax2.set_xlabel('Porosity Factor')
-ax2.set_ylabel('Maximum Thrust (N)')
-plt.show()
+    fig, (ax1, ax2) = plt.subplots(2, 1)
+    ax1.plot(porous_grain_factor, np.array(pc_max)/100000)
+    ax1.set_xlabel('Porosity Factor')
+    ax1.set_ylabel('Maximum Chamber Pressure (bar)')
+    ax1.set_title('Effect of Porosity on Pressure and Thrust')
+    ax2.plot(porous_grain_factor, thrust_max)
+    ax2.set_xlabel('Porosity Factor')
+    ax2.set_ylabel('Maximum Thrust (N)')
+    plt.show()
 
 # Calculate the thust, exuaghst velocity (semi-theoetical) and mass flow no additive at the moment
 
