@@ -565,19 +565,6 @@ def Error_Loop():
 
         #T_outer = T_outside(t_grain, reg_adjusted, w)
 
-        pc_max.append(max(ChamPres))
-        Thrust_values, Ue_values, massflow_values =  Thrust(gam,R,Tc,Pa,ChamPres)
-        thrust_max.append(max(Thrust_values))
-        reg_av = np.mean(reg_original[0:3751])
-        reg_adj_av = np.mean(reg_adjusted[0:3751])
-        area=[]
-        for i in range(0, len(w_value)):
-            area.append(Ab(w_value[i]))
-        burn_time = M_propellant / (Prop_den * reg_av * np.mean(area[0:3751]))
-        burn_time_adj = M_propellant / (Prop_den * reg_adj_av * np.mean(area[0:3751]))
-        print(f"Burn time without additive: {round(burn_time, 2)} s")
-        print(f"Burn time with additive: {round(burn_time_adj, 2)} s")
-    # plots the effetcs due to porous gain factors 
     fig, (ax1, ax2) = plt.subplots(2, 1)
     ax1.plot(porous_grain_factor, np.array(pc_max)/100000)
     ax1.set_xlabel('Porosity Factor')
