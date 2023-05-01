@@ -23,119 +23,6 @@ P2 = Pressure2.to_numpy() #PS0 / Ticks [us]
 Load2 = pd.read_csv('Public Projects\Exercise-TRP\Load2.csv')
 L2 = Load2.to_numpy() #LC0 / Ticks [us]
 
-def Plot_Experiment_data(P1,P2,L1,L2): # BE WARNED THIS CAN TAKE A LOT OF TIME <10 MINUTES WITH SPLINES
-    P1_start, P1_end = 70000, 90000
-    L1_start, L1_end = 70000, 90000 
-    P2_start, P2_end = 70000, 130000
-    L2_start, L2_end = 70000, 130000 
-    #splines Options
-    Spline_ON = True # yes to splines 
-    k_val = 5 # spline power order 3 is good can go up to 5
-    Spline_res = 0.1 # reselution of spline
-
-    #Converts data to the correct units Bar, sec
-    for i in np.arange(0,len(P1[:,1])):
-        P1[i,0] = P1[i,0] * 6250 - 24
-        P1[i,1] = P1[i,1]/(1E+6) 
-    #Converts data to the correct units Bar, sec
-    for i in np.arange(0,len(P2[:,1])):
-        P2[i,0] = P2[i,0] * 6250 - 24
-        P2[i,1] = P2[i,1]/(1E+6)   
-    #Converts data to the correct units Newtons, sec
-    for i in np.arange(0,len(L1[:,1])):
-        L1[i,0] = L1[i,0] * (-1087254) - 63.2972
-        L1[i,1] = L1[i,1]/(1E+6) 
-    #Converts data to the correct units Newtons, sec
-    for i in np.arange(0,len(L2[:,1])):
-        L2[i,0] = L2[i,0] * (-1087254) - 63.2972
-        L2[i,1] = L2[i,1]/(1E+6)   
-
-    # Adjust time for Pressure 1,2 and Load cells
-    P1[:, 1] = P1[:, 1] - P1[P1_start, 1]
-    P2[:, 1] = P2[:, 1] - P2[P2_start, 1]
-    L1[:, 1] = L1[:, 1] - L1[L1_start, 1]
-    L2[:, 1] = L2[:, 1] - L2[L1_start, 1]
-
-    #calculate the regresion rate 
-    regression_rate_P1 = a * ((P1[:,0]/10) ** n)
-    regression_rate_P2 = a * ((P2[:,0]/10) ** n)
-
-    #Plot The data 
-    fig, ax1 = plt.subplots(2, 2, figsize=(12, 8))
-    #Pressure plot, Load cell, and regresion rate for 1 
-    ax1[0][0].set_title("Pressure - Failed Engine")
-    ax1[0][0].plot(P1[P1_start:P1_end,1], P1[P1_start:P1_end,0], 'r')
-    ax1[0][0].set_xlabel('Time (s)')
-    ax1[0][0].set_ylabel('Chamber Pressure (bar)')
-
-    ax1[0][1].set_title("Load Cell Thrust - Failed Engine")
-    ax1[0][1].plot(L1[L1_start:L1_end,1], L1[L1_start:L1_end,0], 'r')
-    ax1[0][1].set_xlabel('Time (s)')
-    ax1[0][1].set_ylabel('Thrust (N)')
-
-    ax1[1][0].set_title("Regression Rate - Failed Engine")
-    ax1[1][0].plot(P1[P1_start:P1_end,1], regression_rate_P1[P1_start:P1_end], 'r')
-    ax1[1][0].set_xlabel('Time (s)')
-    ax1[1][0].set_ylabel('regression rate (mm/s)')
-
-    #Plot The data 
-    fig, ax2 = plt.subplots(2, 2, figsize=(12, 8))
-    #Pressure plot, Load cell, and regresion rate for 1 
-    ax2[0][0].set_title("Pressure - Reference Engine")
-    ax2[0][0].plot(P2[P2_start:P2_end,1], P2[P2_start:P2_end,0], 'r')
-    ax2[0][0].set_xlabel('Time (s)')
-    ax2[0][0].set_ylabel('Chamber Pressure (bar)')
-
-    ax2[0][1].set_title("Load Cell Thrust - Reference Engine")
-    ax2[0][1].plot(L2[L2_start:L2_end,1], L2[L2_start:L2_end,0], 'r')
-    ax2[0][1].set_xlabel('Time (s)')
-    ax2[0][1].set_ylabel('Thrust (N)')
-
-    ax2[1][0].set_title("Regression Rate - Reference Engine")
-    ax2[1][0].plot(P2[P2_start:P2_end,1], regression_rate_P2[P2_start:P2_end], 'r')
-    ax2[1][0].set_xlabel('Time (s)')
-    ax2[1][0].set_ylabel('regresion rate (mm/s)')
-    
-    if Spline_ON == True:
-        #gernerate splines for load cell data
-        print("Starting of Spline Generation")
-        spl_L1 = UnivariateSpline(L1[L1_start:L1_end,1], L1[L1_start:L1_end,0],s=len(L1[L1_start:L1_end,0]),k=k_val)
-        x2_L1 = np.arange(L1[L1_start,1],L1[L1_end,1],Spline_res)
-        spl_L2 = UnivariateSpline(L2[L2_start:L2_end,1], L2[L2_start:L2_end,0],s=len(L2[L2_start:L2_end,0]),k=k_val)
-        x2_L2 = np.arange(L2[L2_start,1],L2[L2_end,1],Spline_res)
-
-        #gernerate splines for pressure data
-        print("Pressure Spines are Done")
-        spl_P1 = UnivariateSpline(P1[P1_start:P1_end,1], P1[P1_start:P1_end,0],s=len(P1[P1_start:P1_end,0]),k=k_val)
-        x2_P1 = np.arange(P1[P1_start,1],P1[P1_end,1],Spline_res)
-        spl_P2 = UnivariateSpline(P2[P2_start:P2_end,1], P2[P2_start:P2_end,0],s=len(P2[P2_start:P2_end,0])*5,k=k_val)
-        x2_P2 = np.arange(P2[P2_start,1],P2[P2_end,1],Spline_res)
-        
-        #gernerate splines for regresion data
-        print("Load Cell Spines are Done")
-        
-        regression_rate_P1 = np.nan_to_num(regression_rate_P1, nan=0.0) #reg has nan values due to pressure having neg values so replace all nan with 0
-        regression_rate_P2 = np.nan_to_num(regression_rate_P2, nan=0.0) #not great but ok when P>0 consistantly ie the actural burn
-
-        spl_r1 = UnivariateSpline(P1[P1_start:P1_end,1], regression_rate_P1[P1_start:P1_end],s=len(regression_rate_P1[P1_start:P1_end])/10,k=k_val)
-        x2_r1 = np.arange(P1[P1_start,1],P2[P1_end,1],Spline_res)
-        spl_r2 = UnivariateSpline(P2[P2_start:P2_end,1], regression_rate_P2[P2_start:P2_end],s=len(regression_rate_P2[P2_start:P2_end]),k=k_val)
-        x2_r2 = np.arange(P2[P2_start,1],P2[P2_end,1],Spline_res)
-        #r1_ploy = np.polyfit(P1[P1_start:P1_end,1], regression_rate_P1[P1_start:P1_end],deg=regression_rate_P1[P1_start:P1_end])
-        print("All Spines are Done")
-        
-        #plot spline data 
-        ax1[0][0].plot(x2_P1, spl_P1(x2_P1), c='b',lw=1)
-        ax1[0][1].plot(x2_L1, spl_L1(x2_L1), c='b',lw=1)
-        ax1[1][0].plot(x2_r1, spl_r1(x2_r1), c='b',lw=1)
-        #ax1[1][0].plot(P1[P1_start:P1_end,1], r1_ploy, c='g')
-
-        ax2[0][0].plot(x2_P2, spl_P2(x2_P2), c='b',lw=0.5)
-        ax2[0][1].plot(x2_L2, spl_L2(x2_L2), c='b',lw=1)
-        ax2[1][0].plot(x2_r2, spl_r2(x2_r2), c='b',lw=0.5)
-
-    plt.show()
-
 # Constants
 a = 5.132                                   #mm/s/MPa
 n = 0.222                                   # -
@@ -175,7 +62,6 @@ M_propellant = 0.758                        # mass of propellant [kg]
 T_amb = 298                                 # K ambient temperature
 porous_grain_factor = 1 * np.linspace(1, 2.5, 20)# We can add this factor to the regression rate to account for the extra air in the propellant.
 
-
 # initial values
 Pc = 2E+6                                   #101325 # Pa chamber pressure
 Pa = 101325                                 # Pa atmospheric pressure
@@ -188,6 +74,125 @@ T_grain_init = 300                          #[K]
 t_init = R_max - R_int                      # initial grain thickness, R_max - R_inner at start of burn
 A_chamber = 2*np.pi*(R_max+t_wall)*Len_grain #Surface area on the outside of the chamber
 
+def Plot_Experiment_data(P1,P2,L1,L2): # BE WARNED THIS CAN TAKE A LOT OF TIME <10 MINUTES WITH SPLINES
+    P1_start, P1_end = 70000, 90000
+    L1_start, L1_end = 70000, 90000 
+    P2_start, P2_end = 70000, 130000
+    L2_start, L2_end = 70000, 130000 
+    #splines Options
+    Spline_ON = True # yes to splines 
+    k_val = 5 # spline power order 3 is good can go up to 5
+    Spline_res = 0.01 # reselution of spline
+
+    #Converts data to the correct units Bar, sec
+    for i in np.arange(0,len(P1[:,1])):
+        P1[i,0] = P1[i,0] * 6250 - 24
+        P1[i,1] = P1[i,1]/(1E+6) 
+    #Converts data to the correct units Bar, sec
+    for i in np.arange(0,len(P2[:,1])):
+        P2[i,0] = P2[i,0] * 6250 - 24
+        P2[i,1] = P2[i,1]/(1E+6)   
+    #Converts data to the correct units Newtons, sec
+    for i in np.arange(0,len(L1[:,1])):
+        L1[i,0] = L1[i,0] * (-1087254) - 63.2972
+        L1[i,1] = L1[i,1]/(1E+6) 
+    #Converts data to the correct units Newtons, sec
+    for i in np.arange(0,len(L2[:,1])):
+        L2[i,0] = L2[i,0] * (-1087254) - 63.2972
+        L2[i,1] = L2[i,1]/(1E+6)   
+
+    # Adjust time for Pressure 1,2 and Load cells
+    P1[:, 1] = P1[:, 1] - P1[P1_start, 1]
+    P2[:, 1] = P2[:, 1] - P2[P2_start, 1]
+    L1[:, 1] = L1[:, 1] - L1[L1_start, 1]
+    L2[:, 1] = L2[:, 1] - L2[L1_start, 1]
+
+    #calculate the regresion rate 
+    regression_rate_P1 = a * ((P1[:,0]/10) ** n)
+    regression_rate_P2 = a * ((P2[:,0]/10) ** n)
+
+    #Plot The data 
+    fig, ax1 = plt.subplots(3, figsize=(12, 8))
+    #Pressure plot, Load cell, and regresion rate for 1 
+    ax1[0].set_title("Pressure - Failed Engine")
+    ax1[0].set_xticks(np.arange(min(P1[P1_start:P1_end,1]), max(P1[P1_start:P1_end,1])+1, 0.5))
+    ax1[0].plot(P1[P1_start:P1_end,1], P1[P1_start:P1_end,0], 'b')
+    ax1[0].set_xlabel('Time (s)')
+    ax1[0].set_ylabel('Chamber Pressure (bar)')
+
+    ax1[1].set_title("Load Cell Thrust - Failed Engine")
+    ax1[1].set_xticks(np.arange(min(L1[L1_start:L1_end,1]), max(L1[L1_start:L1_end,1])+1, 0.5))
+    ax1[1].plot(L1[L1_start:L1_end,1], L1[L1_start:L1_end,0], 'b')
+    ax1[1].set_xlabel('Time (s)')
+    ax1[1].set_ylabel('Thrust (N)')
+
+    ax1[2].set_title("Regression Rate - Failed Engine")
+    ax1[2].set_xticks(np.arange(min(P1[P1_start:P1_end,1]), max(P1[P1_start:P1_end,1])+1, 0.5))
+    ax1[2].plot(P1[P1_start:P1_end,1], regression_rate_P1[P1_start:P1_end], 'b')
+    ax1[2].set_xlabel('Time (s)')
+    ax1[2].set_ylabel('regression rate (mm/s)')
+    plt.tight_layout()
+    #Plot The data 
+    fig, ax2 = plt.subplots(3, figsize=(12, 8))
+    #Pressure plot, Load cell, and regresion rate for 1 
+    ax2[0].set_title("Pressure - Reference Engine")
+    ax2[0].set_xticks(np.arange(min(P2[P2_start:P2_end,1]), max(P2[P2_start:P2_end,1])+1, 1))
+    ax2[0].plot(P2[P2_start:P2_end,1], P2[P2_start:P2_end,0], 'b')
+    ax2[0].set_xlabel('Time (s)')
+    ax2[0].set_ylabel('Chamber Pressure (bar)')
+
+    ax2[1].set_title("Load Cell Thrust - Reference Engine")
+    ax2[1].set_xticks(np.arange(min(L2[L2_start:L2_end,1]), max(L2[L2_start:L2_end,1])+1, 1))
+    ax2[1].plot(L2[L2_start:L2_end,1], L2[L2_start:L2_end,0], 'b')
+    ax2[1].set_xlabel('Time (s)')
+    ax2[1].set_ylabel('Thrust (N)')
+
+    ax2[2].set_title("Regression Rate - Reference Engine")
+    ax2[2].set_xticks(np.arange(min(P2[P2_start:P2_end,1]), max(P2[P2_start:P2_end,1])+1, 1))
+    ax2[2].plot(P2[P2_start:P2_end,1], regression_rate_P2[P2_start:P2_end], 'b')
+    ax2[2].set_xlabel('Time (s)')
+    ax2[2].set_ylabel('regresion rate (mm/s)')
+    plt.tight_layout()
+    if Spline_ON == True:
+        #gernerate splines for load cell data
+        print("Starting of Spline Generation")
+        spl_L1 = UnivariateSpline(L1[L1_start:L1_end,1], L1[L1_start:L1_end,0],s=len(L1[L1_start:L1_end,0]),k=k_val)
+        x2_L1 = np.arange(L1[L1_start,1],L1[L1_end,1],Spline_res)
+        spl_L2 = UnivariateSpline(L2[L2_start:L2_end,1], L2[L2_start:L2_end,0],s=len(L2[L2_start:L2_end,0]),k=k_val)
+        x2_L2 = np.arange(L2[L2_start,1],L2[L2_end,1],Spline_res)
+
+        #gernerate splines for pressure data
+        print("Pressure Spines are Done")
+        spl_P1 = UnivariateSpline(P1[P1_start:P1_end,1], P1[P1_start:P1_end,0],s=len(P1[P1_start:P1_end,0]),k=k_val)
+        x2_P1 = np.arange(P1[P1_start,1],P1[P1_end,1],Spline_res)
+        spl_P2 = UnivariateSpline(P2[P2_start:P2_end,1], P2[P2_start:P2_end,0],s=len(P2[P2_start:P2_end,0])*5,k=k_val)
+        x2_P2 = np.arange(P2[P2_start,1],P2[P2_end,1],Spline_res)
+        
+        #gernerate splines for regresion data
+        print("Load Cell Spines are Done")
+        
+        regression_rate_P1 = np.nan_to_num(regression_rate_P1, nan=0.0) #reg has nan values due to pressure having neg values so replace all nan with 0
+        regression_rate_P2 = np.nan_to_num(regression_rate_P2, nan=0.0) #not great but ok when P>0 consistantly ie the actural burn
+
+        spl_r1 = UnivariateSpline(P1[P1_start:P1_end,1], regression_rate_P1[P1_start:P1_end],s=len(regression_rate_P1[P1_start:P1_end])/10,k=k_val)
+        x2_r1 = np.arange(P1[P1_start,1],P2[P1_end,1],Spline_res)
+        spl_r2 = UnivariateSpline(P2[P2_start:P2_end,1], regression_rate_P2[P2_start:P2_end],s=len(regression_rate_P2[P2_start:P2_end]),k=k_val)
+        x2_r2 = np.arange(P2[P2_start,1],P2[P2_end,1],Spline_res)
+        #r1_ploy = np.polyfit(P1[P1_start:P1_end,1], regression_rate_P1[P1_start:P1_end],deg=regression_rate_P1[P1_start:P1_end])
+        print("All Spines are Done")
+        
+        #plot spline data 
+        ax1[0].plot(x2_P1, spl_P1(x2_P1), c='r',lw=1)
+        ax1[1].plot(x2_L1, spl_L1(x2_L1), c='r',lw=1)
+        ax1[2].plot(x2_r1, spl_r1(x2_r1), c='r',lw=1)
+        #ax1[1][0].plot(P1[P1_start:P1_end,1], r1_ploy, c='g')
+
+        ax2[0].plot(x2_P2, spl_P2(x2_P2), c='r',lw=1)
+        ax2[1].plot(x2_L2, spl_L2(x2_L2), c='r',lw=1)
+        ax2[2].plot(x2_r2, spl_r2(x2_r2), c='r',lw=1)
+
+        plt.tight_layout()
+    plt.show()
 
 # Data Arrays
 Time = []
@@ -495,6 +500,22 @@ def Main_loop():
             main_code_loop(i)
         plot_data(i)
 
+    pc_max = []
+    thrust_max = []
+
+    pc_max.append(max(ChamPres))
+    Thrust_values, Ue_values, massflow_values =  Thrust(gam,R,Tc,Pa,ChamPres)
+    thrust_max.append(max(Thrust_values))
+    reg_av = np.mean(reg_original[0:3751])
+    reg_adj_av = np.mean(reg_adjusted[0:3751])
+    area=[]
+    for i in range(0, len(w_value)):
+        area.append(Ab(w_value[i]))
+    burn_time = M_propellant / (Prop_den * reg_av * np.mean(area[0:3751]))
+    burn_time_adj = M_propellant / (Prop_den * reg_adj_av * np.mean(area[0:3751]))
+    print(f"Burn time without additive: {round(burn_time, 2)} s")
+    print(f"Burn time with additive: {round(burn_time_adj, 2)} s")
+
 def Error_Loop():
     global reg_adjusted, reg_original, porosity, final_area
     pc_max = []
@@ -533,7 +554,7 @@ def Error_Loop():
         print(f"Burn time with additive: {round(burn_time_adj, 2)} s")
     
     #plots the effects due to throat area
-    fig, (ax1, ax2) = plt.subplots(2, 1)
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 8))
     ax1.plot(np.array(At_f) / At_i, np.array(pc_max)/100000)
     ax1.set_xlabel('Final Throat Area ratio')
     ax1.set_ylabel('Maximum Chamber Pressure (bar)')
@@ -576,7 +597,7 @@ def Error_Loop():
         print(f"Burn time without additive: {round(burn_time, 2)} s")
         print(f"Burn time with additive: {round(burn_time_adj, 2)} s")
 
-    fig, (ax1, ax2) = plt.subplots(2, 1)
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 8))
     ax1.plot(porous_grain_factor, np.array(pc_max)/100000)
     ax1.set_xlabel('Porosity Factor')
     ax1.set_ylabel('Maximum Chamber Pressure (bar)')
@@ -584,42 +605,44 @@ def Error_Loop():
     ax2.plot(porous_grain_factor, thrust_max)
     ax2.set_xlabel('Porosity Factor')
     ax2.set_ylabel('Maximum Thrust (N)')
+
+    plt.tight_layout()
     plt.show()
 
-#Does all the Calculations
-#Main_loop()
-#Error_Loop()
-Plot_Experiment_data(P1,P2,L1,L2)
+#=================================================================================================================================#
+#=================================================================================================================================#
+#     _____   _                                           _____               _                _                                  #
+#    / ____| | |                                         / ____|             | |              | |                                 #
+#   | |      | |__     ___     ___    ___    ___        | |        ___     __| |   ___        | |        ___     ___    _ __      #
+#   | |      | '_ \   / _ \   / _ \  / __|  / _ \       | |       / _ \   / _` |  / _ \       | |       / _ \   / _ \  | '_ \     #
+#   | |____  | | | | | (_) | | (_) | \__ \ |  __/       | |____  | (_) | | (_| | |  __/       | |____  | (_) | | (_) | | |_) |    #
+#    \_____| |_| |_|  \___/   \___/  |___/  \___|        \_____|  \___/   \__,_|  \___|       |______|  \___/   \___/  | .__/     #
+#                                                                                                                      | |        #
+#                                                                                                                      |_|        #
+#=================================================================================================================================#
+#=================================================================================================================================#
+#Choose what Code to Run 
+#Main_loop()                             #Calculates the Motor preformcance for both refrence and 1% additive motors
+#Error_Loop()                            #Calculates the effects due to a change in Throat area or grain porosity
+Plot_Experiment_data(P1,P2,L1,L2)       #Plots the experimental data !!!!!THIS WILL TAKE 10+ MINUTES!!!!!
+#=================================================================================================================================#
+#=================================================================================================================================#
 
 
-# Calculate the thust, exuaghst velocity (semi-theoetical) and mass flow no additive at the moment
-pc_max = []
-thrust_max = []
 
-T_outer = T_outside(t_grain, reg_adjusted, w)
 
-pc_max.append(max(ChamPres))
-Thrust_values, Ue_values, massflow_values =  Thrust(gam,R,Tc,Pa,ChamPres)
-thrust_max.append(max(Thrust_values))
-reg_av = np.mean(reg_original[0:3751])
-reg_adj_av = np.mean(reg_adjusted[0:3751])
-area=[]
-for i in range(0, len(w_value)):
-    area.append(Ab(w_value[i]))
-burn_time = M_propellant / (Prop_den * reg_av * np.mean(area[0:3751]))
-burn_time_adj = M_propellant / (Prop_den * reg_adj_av * np.mean(area[0:3751]))
-print(f"Burn time without additive: {round(burn_time, 2)} s")
-print(f"Burn time with additive: {round(burn_time_adj, 2)} s")
+
+
 # plot regression rate
-plt.figure()
-plt.plot(Time[0:5991], reg_adjusted, 'c')
-plt.title('Regression Rate with Additive')
-plt.xlabel('Time (s)')
-plt.ylabel('Regression Rate (m/s)')
+#plt.figure()
+#plt.plot(Time[0:5991], reg_adjusted, 'c')
+#plt.title('Regression Rate with Additive')
+#plt.xlabel('Time (s)')
+#plt.ylabel('Regression Rate (m/s)')
 #plt.show()
 # plot outer temperature
-plt.figure()
-plt.plot(Time[0:5991], T_outer, 'c')
-plt.xlabel('Time (s)')
-plt.ylabel('Outer Temperature (K)')
+#plt.figure()
+#plt.plot(Time[0:5991], T_outer, 'c')
+#plt.xlabel('Time (s)')
+#plt.ylabel('Outer Temperature (K)')
 #plt.show()
