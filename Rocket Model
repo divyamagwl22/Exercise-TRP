@@ -7,20 +7,20 @@ import pandas as pd
 
 # DATA 1
 # Read CSV file for Thermocouple data from Datasheet 1
-Thermocouples1 = pd.read_csv('Exercise-TRP\Thermocouples1.csv') #Public Projects\Exercise-TRP\
+Thermocouples1 = pd.read_csv('Public Projects\Exercise-TRP\Thermocouples1.csv') #Public Projects\Exercise-TRP\
 # Convert data to numpy accessable
 T1 = Thermocouples1.to_numpy() #TC0 / TC1 / TC2 / TC3 / Autozero / CJC / Ticks [us]
-Pressure1 = pd.read_csv('Exercise-TRP\Pressure1.csv')
+Pressure1 = pd.read_csv('Public Projects\Exercise-TRP\Pressure1.csv')
 P1 = Pressure1.to_numpy() #PS0 / Ticks [us]
-Load1 = pd.read_csv('Exercise-TRP\Load1.csv')
+Load1 = pd.read_csv('Public Projects\Exercise-TRP\Load1.csv')
 L1 = Load1.to_numpy() #LC0 / Ticks [us]
 
 # DATA 2
-Thermocouples2 = pd.read_csv('Exercise-TRP\Thermocouples2.csv')
+Thermocouples2 = pd.read_csv('Public Projects\Exercise-TRP\Thermocouples2.csv')
 T2 = Thermocouples2.to_numpy() #TC0 / TC1 / TC2 / TC3 / Autozero / CJC / Ticks [us]
-Pressure2 = pd.read_csv('Exercise-TRP\Pressure2.csv')
+Pressure2 = pd.read_csv('Public Projects\Exercise-TRP\Pressure2.csv')
 P2 = Pressure2.to_numpy() #PS0 / Ticks [us]
-Load2 = pd.read_csv('Exercise-TRP\Load2.csv')
+Load2 = pd.read_csv('Public Projects\Exercise-TRP\Load2.csv')
 L2 = Load2.to_numpy() #LC0 / Ticks [us]
 
 def Plot_Experiment_data(P1,P2,L1,L2): # BE WARNED THIS CAN TAKE A LOT OF TIME <10 MINUTES WITH SPLINES
@@ -173,8 +173,9 @@ a_grain = 0.8                               # absorptivity of the grain, needs a
 H_grain = 4.7E6                                   # J/kg heat from grain
 M_propellant = 0.758                        # mass of propellant [kg]
 T_amb = 298                                 # K ambient temperature
-porous_grain_factor = 1 # We can add this factor to the regression rate to account for the extra air in the propellant.
-
+porous_grain_factor = 1 * np.linspace(1, 0.01, 20)# We can add this factor to the regression rate to account for the extra air in the propellant.
+porosity = 1                                # initial value
+final_area = At_i                           # initial value
 
 # initial values
 Pc = 2E+6                                   #101325 # Pa chamber pressure
@@ -424,9 +425,9 @@ def main_code_loop(iter): #iter is the iteration number used to iterate the code
 
 # Using RPA Lite, I create an array of Tc, Gam, and R based on the input chamber pressure.
 def get_updated_regresion_rate():
-    prop_1 = np.loadtxt("Exercise-TRP\RPA_Lite\properties_1.txt") #Public Projects\Exercise-TRP\RPA_Lite\properties_1.txt
-    prop_2 = np.loadtxt("Exercise-TRP\RPA_Lite\properties_2.txt")
-    prop_3 = np.loadtxt("Exercise-TRP\RPA_Lite\properties_3.txt")
+    prop_1 = np.loadtxt("Public Projects\Exercise-TRP\RPA_Lite\properties_1.txt") #Public Projects\Exercise-TRP\RPA_Lite\properties_1.txt
+    prop_2 = np.loadtxt("Public Projects\Exercise-TRP\RPA_Lite\properties_2.txt")
+    prop_3 = np.loadtxt("Public Projects\Exercise-TRP\RPA_Lite\properties_3.txt")
     Tc_RPA = np.concatenate((prop_1[:, 5], prop_2[:, 5], prop_3[:, 5]))
     gam_RPA = np.concatenate((prop_1[:, 7], prop_2[:, 7], prop_3[:, 7]))
     Gam_RPA = np.multiply((np.sqrt(gam_RPA)), np.power((1 + gam_RPA)/2, -(1 + gam_RPA) / (2*(gam_RPA - 1))))
@@ -480,62 +481,101 @@ def plot_data(i):
     plt.tight_layout()
     plt.show()
 
-pc_max = []
-thrust_max = []
-for i in range(0, len(At_f)):
-    #RUN THE MAIN CODE LOOP MUST HAPPEN
-    porosity = porous_grain_factor
-    final_area = At_f[i]
+def Main_loop():
+    global reg_adjusted, reg_original
     num_interations = 2
     for i in np.arange(0,num_interations,1):
+        print(i)
         if i == 0:
             reg_original = main_code_loop(i)
         else:
+            main_code_loop(i-1)
+            reg_adjusted = get_updated_regresion_rate()
             main_code_loop(i)
-        print(i)
-        reg_adjusted = get_updated_regresion_rate()
-        #plot_data(i)
+        plot_data(i)
 
-    # plot_data(num_interations) #plots the last iteration
-    # Plot_Experiment_data(P1,P2,L1,L2) #this will take a whikle to load
+    
 
-    T_outer = T_outside(t_grain, reg_adjusted, w)
+def Error_Loop():
+    global reg_adjusted, reg_original
+    pc_max = []
+    thrust_max = []
+    k=0
+    for j in range(0, len(porous_grain_factor)):
+        k =+ k
+        print(k)
+        for i in range(0, len(At_f)):
+            #RUN THE MAIN CODE LOOP MUST HAPPEN
+            porosity = porous_grain_factor[j]
+            final_area = At_f[i]
+            num_interations = 2
+            for i in np.arange(0,num_interations,1):
+                if i == 0:
+                    reg_original = main_code_loop(i)
+                else:
+                    main_code_loop(i-1)
+                    reg_adjusted = get_updated_regresion_rate()
+                    main_code_loop(i)
+                #plot_data(i)
+                print(i)
+            # plot_data(num_interations) #plots the last iteration
+            # Plot_Experiment_data(P1,P2,L1,L2) #this will take a whikle to load
 
-    pc_max.append(max(ChamPres))
-    Thrust_values, Ue_values, massflow_values =  Thrust(gam,R,Tc,Pa,ChamPres)
-    thrust_max.append(max(Thrust_values))
-    reg_av = np.mean(reg_original[0:3751])
-    reg_adj_av = np.mean(reg_adjusted[0:3751])
-    area=[]
-    for i in range(0, len(w_value)):
-        area.append(Ab(w_value[i]))
-    burn_time = M_propellant / (Prop_den * reg_av * np.mean(area[0:3751]))
-    burn_time_adj = M_propellant / (Prop_den * reg_adj_av * np.mean(area[0:3751]))
-    print(f"Burn time without additive: {round(burn_time, 2)} s")
-    print(f"Burn time with additive: {round(burn_time_adj, 2)} s")
+            T_outer = T_outside(t_grain, reg_adjusted, w)
 
-fig, (ax1, ax2) = plt.subplots(2, 1)
-ax1.plot(np.array(At_f) / At_i, np.array(pc_max)/100000)
-ax1.set_xlabel('Final Throat Area')
-ax1.set_ylabel('Maximum Chamber Pressure (bar)')
-ax1.set_title('Effect of Clogged Nozzle Throat on Pressure and Thrust')
-ax2.plot(np.array(At_f) / At_i, thrust_max)
-ax2.set_xlabel('Final Throat Area')
-ax2.set_ylabel('Maximum Thrust (N)')
-plt.show()
+            pc_max.append(max(ChamPres))
+            Thrust_values, Ue_values, massflow_values =  Thrust(gam,R,Tc,Pa,ChamPres)
+            thrust_max.append(max(Thrust_values))
+            reg_av = np.mean(reg_original[0:3751])
+            reg_adj_av = np.mean(reg_adjusted[0:3751])
+            area=[]
+            for i in range(0, len(w_value)):
+                area.append(Ab(w_value[i]))
+            burn_time = M_propellant / (Prop_den * reg_av * np.mean(area[0:3751]))
+            burn_time_adj = M_propellant / (Prop_den * reg_adj_av * np.mean(area[0:3751]))
+            print(f"Burn time without additive: {round(burn_time, 2)} s")
+            print(f"Burn time with additive: {round(burn_time_adj, 2)} s")
 
-fig, (ax1, ax2) = plt.subplots(2, 1)
-ax1.plot(porous_grain_factor, np.array(pc_max)/100000)
-ax1.set_xlabel('Porosity Factor')
-ax1.set_ylabel('Maximum Chamber Pressure (bar)')
-ax1.set_title('Effect of Porosity on Pressure and Thrust')
-ax2.plot(porous_grain_factor, thrust_max)
-ax2.set_xlabel('Porosity Factor')
-ax2.set_ylabel('Maximum Thrust (N)')
-plt.show()
+    fig, (ax1, ax2) = plt.subplots(2, 1)
+    ax1.plot(np.array(At_f) / At_i, np.array(pc_max)/100000)
+    ax1.set_xlabel('Final Throat Area')
+    ax1.set_ylabel('Maximum Chamber Pressure (bar)')
+    ax1.set_title('Effect of Clogged Nozzle Throat on Pressure and Thrust')
+    ax2.plot(np.array(At_f) / At_i, thrust_max)
+    ax2.set_xlabel('Final Throat Area')
+    ax2.set_ylabel('Maximum Thrust (N)')
 
+    fig, (ax1, ax2) = plt.subplots(2, 1)
+    ax1.plot(porous_grain_factor, np.array(pc_max)/100000)
+    ax1.set_xlabel('Porosity Factor')
+    ax1.set_ylabel('Maximum Chamber Pressure (bar)')
+    ax1.set_title('Effect of Porosity on Pressure and Thrust')
+    ax2.plot(porous_grain_factor, thrust_max)
+    ax2.set_xlabel('Porosity Factor')
+    ax2.set_ylabel('Maximum Thrust (N)')
+    plt.show()
+
+#Does all the Calculations
+#Main_loop()
+Error_Loop()
 # Calculate the thust, exuaghst velocity (semi-theoetical) and mass flow no additive at the moment
+pc_max = []
+thrust_max = []
 
+T_outer = T_outside(t_grain, reg_adjusted, w)
+
+pc_max.append(max(ChamPres))
+Thrust_values, Ue_values, massflow_values =  Thrust(gam,R,Tc,Pa,ChamPres)
+thrust_max.append(max(Thrust_values))
+reg_av = np.mean(reg_original[0:3751])
+reg_adj_av = np.mean(reg_adjusted[0:3751])
+area=[]
+for i in range(0, len(w_value)):
+    area.append(Ab(w_value[i]))
+burn_time = M_propellant / (Prop_den * reg_av * np.mean(area[0:3751]))
+burn_time_adj = M_propellant / (Prop_den * reg_adj_av * np.mean(area[0:3751]))
+print(f"Burn time without additive: {round(burn_time, 2)} s")
+print(f"Burn time with additive: {round(burn_time_adj, 2)} s")
 # plot regression rate
 plt.figure()
 plt.plot(Time[0:5991], reg_adjusted, 'c')
