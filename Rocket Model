@@ -146,7 +146,7 @@ Prop_den = 1841                             # kg/m^3 propellant density
 Dt = 7.8E-3                                 # m throat diameter
 De = 16.74E-3                               # m nozzle exit diameter
 At_i = np.pi * (Dt/2)**2                    # initial throat area
-At_f = At_i*np.linspace(0.01, 1, 100)        # final throat area
+At_f = At_i*np.linspace(1, 0.01, 20)        # final throat area
 At = np.pi * (Dt/2)**2                      # m^2 throat area
 Ae = np.pi * (De/2)**2                      # M^2 nozzle exit
 R = 206.3                                   # 206.3E+6 # m^2 s^-2 K^-1 specific gas constant
@@ -248,8 +248,10 @@ def dv_dt(Pc,w,iter,t):
 
     return dv
 
-def dPc_dt(Vc,Pc,w,iter,t):
-    dPc = ((R * Tc)/Vc) * (Prop_den * r(Pc,iter,t,porosity) * Ab(w) - (Pc * At)/c) - (Pc/Vc)*dv_dt(Pc,w,iter,t)
+def dPc_dt(Vc,Pc,w,iter,t,i,num_total):
+    area_interp = ((At_i*i**2) - (final_area*i**2) - (At_i*num_total**2)) / (-num_total**2)
+    # print(area_interp / At_i)
+    dPc = ((R * Tc)/Vc) * (Prop_den * r(Pc,iter,t,porosity) * Ab(w) - (Pc * area_interp)/c) - (Pc/Vc)*dv_dt(Pc,w,iter,t)
 
     return dPc
 
@@ -280,8 +282,8 @@ def Thrust(gam,R,Tc,Pa,Pc): #calaculates the thrust of the rocket dependent on t
     for i in np.arange(0, len(Pc)):
 
         Ue[i] = np.sqrt((2 * gam)/(gam - 1) * R * Tc * (1 - (Pe_Pc_val) ** ((gam - 1)/gam))) # may want to relate this to the function
-
-        m[i] = (Pc[i] * At)/c # may want to relate this to the function
+        area_interp = ((At_i*i**2) - (final_area*i**2) - (At_i*len(Pc)**2)) / (-len(Pc)**2)
+        m[i] = (Pc[i] * area_interp)/c # may want to relate this to the function
 
         Cf[i] = Gam * np.sqrt((2 * gam)/(gam - 1) * (1 - (Pe_Pc_val) ** ((gam - 1)/gam))) + (Pe_Pc_val - Pa/Pc[i])*Ae_At_giv
 
@@ -295,13 +297,13 @@ def updated_regression_rate(Pc, Tc, Gam, At, Prop_den, R, w):
     for i in range(0, len(Pc)):
         c_star[i] = (1 / Gam[i]) * np.sqrt(R[i] * Tc[i])
         if Ab(w[i]) > 0 and Ab(w[i]) < 0.05:
-            area_interp = -(-At_i*(len(Pc)**2 - (2*len(Pc)*i) + i**2) - final_area*(i**2)) / ((2*i**2) - (2*len(Pc)*i) + len(Pc)**2)
-            updated_r[i] = np.asarray(Pc[i]) * (area_interp) / (Prop_den * 0.01 * c_star[i])
+            # area_interp = ((At_i*i**2) - (final_area*i**2) - (At_i*len(Pc)**2)) / (-len(Pc)**2)
+            updated_r[i] = np.asarray(Pc[i]) * At / (Prop_den * 0.01 * c_star[i])
         elif Ab(w[i]) == 0:
             updated_r[i] = 0
         else:
-            area_interp = -(-At_i*(len(Pc)**2 - (2*len(Pc)*i) + i**2) - final_area*(i**2)) / ((2*i**2) - (2*len(Pc)*i) + len(Pc)**2)
-            updated_r[i] = np.asarray(Pc[i]) * (area_interp) / (Prop_den * Ab(w[i]) * c_star[i])
+            # area_interp = ((At_i*i**2) - (final_area*i**2) - (At_i*len(Pc)**2)) / (-len(Pc)**2)
+            updated_r[i] = np.asarray(Pc[i]) * At / (Prop_den * Ab(w[i]) * c_star[i])
     
     return updated_r
 
@@ -388,15 +390,17 @@ def main_code_loop(iter): #iter is the iteration number used to iterate the code
     ChamPres = []
     Momentum = []
     
+    num_total = int(t_max / dt)
     # main loop
     for t in np.arange(0,t_max,dt):
         # do calculations
-
+        
         w = w + dw_dt(Pc,iter,t)*dt
 
         Vc = Vc + dv_dt(Pc,w,iter,t)*dt
 
-        Pc = Pc + dPc_dt(Vc,Pc,w,iter,t)*dt
+        i = (t / t_max) * num_total
+        Pc = Pc + dPc_dt(Vc,Pc,w,iter,t,i,num_total)*dt
 
         E_jet_dt = Jet_Power(Massflow(dv_dt(Pc,w,iter,t)),V_eq)*dt # Jet Energy in this particular timestep
 
